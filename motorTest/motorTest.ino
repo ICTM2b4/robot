@@ -12,28 +12,59 @@ enum axis
 
 void setup()
 {
+    Serial.begin(9600);
     // setup X motor
     pinMode(X_MOTOR_DIRECTION, OUTPUT);
     pinMode(X_MOTOR_SPEED, OUTPUT);
+    // setup Y motor
+    pinMode(Y_MOTOR_DIRECTION, OUTPUT);
+    pinMode(Y_MOTOR_SPEED, OUTPUT);
 }
 
 void loop()
 {
-    setMotorDirection(X, true);
-    setMotorSpeed(X, 255);
-    delay(1000);
-    setMotorDirection(X, false);
-    setMotorSpeed(X, 255);
-    delay(1000);
-    setMotorSpeed(X, 0);
+    checkMessages();
+}
 
-    setMotorDirection(Y, true);
-    setMotorSpeed(Y, 255);
-    delay(1000);
-    setMotorDirection(Y, false);
-    setMotorSpeed(Y, 255);
-    delay(1000);
-    setMotorSpeed(Y, 0);
+/**
+ *  check if there is a message in the serial buffer
+ *  if there is a message, read it and execute the related command
+ */
+void checkMessages()
+{
+    if (Serial.available() <= 0)
+        return;
+    String ontvangen = Serial.readString();
+    Serial.println(ontvangen);
+
+    if (ontvangen == "X+")
+    {
+        setMotorDirection(X, true);
+        setMotorSpeed(X, 255);
+    }
+    else if (ontvangen == "X-")
+    {
+        setMotorDirection(X, false);
+        setMotorSpeed(X, 255);
+    }
+    else if (ontvangen == "Y+")
+    {
+        setMotorDirection(Y, true);
+        setMotorSpeed(Y, 255);
+    }
+    else if (ontvangen == "Y-")
+    {
+        setMotorDirection(Y, false);
+        setMotorSpeed(Y, 255);
+    }
+    else if (ontvangen == "X0")
+    {
+        setMotorSpeed(X, 0);
+    }
+    else if (ontvangen == "Y0")
+    {
+        setMotorSpeed(Y, 0);
+    }
 }
 
 /**
