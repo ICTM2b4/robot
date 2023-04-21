@@ -1,3 +1,5 @@
+#include <ezButton.h>
+
 #define X_MOTOR_DIRECTION 12
 #define X_MOTOR_SPEED 3
 #define Y_MOTOR_DIRECTION 13
