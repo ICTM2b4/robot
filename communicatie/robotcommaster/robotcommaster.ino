@@ -17,7 +17,7 @@ void setup()
 }
 void readData()
 {
-  //Request value of n to slave
+  //Request value from slave
   Wire.requestFrom(I2C_SLAVE1_ADDRESS, 1);   
   recieve = Wire.read(); 
   Serial.println(recieve);
