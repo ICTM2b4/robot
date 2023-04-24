@@ -10,6 +10,7 @@ int recieve=0;
 
 void setup()
 {
+  // setup comunicatie I2C
   Wire.begin();        
   Serial.begin(9600);  
 
