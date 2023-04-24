@@ -22,14 +22,20 @@ void loop(){
 }
 
 
-// functie voor het versturen van data
+
+/**
+*functie voor het versturen van data
+*/
 void requestEvents()
 {
 
   Wire.write(sent);
 }
 
-// functie voor het ontvangen van data naar master
+
+/**
+*functie voor het ontvangen van data
+*/
 void receiveEvents(int numBytes)
 {  
 

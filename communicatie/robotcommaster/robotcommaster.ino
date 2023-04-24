@@ -15,6 +15,9 @@ void setup()
   Serial.begin(9600);  
 
 }
+/**
+*functie voor het ontvangen van data
+*/
 void readData()
 {
   //Request value from slave
@@ -23,6 +26,9 @@ void readData()
   Serial.println(recieve);
   sent = recieve + 1;
 }
+/**
+*functie voor het versturen van data
+*/
 void sentData(){
    
   //Send value to slave
