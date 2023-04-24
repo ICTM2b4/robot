@@ -29,7 +29,7 @@ void requestEvents()
   Wire.write(sent);
 }
 
-// functie voor het ontvangen van data
+// functie voor het ontvangen van data naar master
 void receiveEvents(int numBytes)
 {  
 
