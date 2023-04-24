@@ -1,4 +1,13 @@
 #include <ezButton.h>
+
+// define en include voor commmunicatie
+#include <Wire.h>
+#define I2C_SLAVE1_ADDRESS 11 // slava adress
+#define PAYLOAD_SIZE 2
+
+int sent = 0;
+// int recieve=0;
+
 // setup the motors
 #define X_MOTOR_DIRECTION 12
 #define X_MOTOR_SPEED 3
@@ -21,12 +30,18 @@ ezButton joystickButton(JOYSTICK_BUTTON_PIN);
 int joystickXValue = 0;
 int joystickYValue = 0;
 int joystickButtonValue = 0;
+int joystickZSpeed = 0;
 // setup the calculated speed based on the joystick values
 int joystickXSpeed;
 int joystickYSpeed;
+// toggle between the XY and Z axis
+bool joystickZAxis = false;
 
 void setup()
 {
+    // setup comunicatie I2C
+    Wire.begin();
+
     Serial.begin(9600);
     // setup motor
     pinMode(X_MOTOR_DIRECTION, OUTPUT);
@@ -41,6 +56,16 @@ void loop()
 {
     checkMessages();
     checkJoystick();
+    sentData();
+}
+
+void sentData()
+{
+
+    // Send value to slave
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(sent);
+    Wire.endTransmission();
 }
 
 /**
@@ -92,25 +117,50 @@ void checkJoystick()
     joystickButtonValue = joystickButton.getState();
     if (joystickButton.isPressed())
     {
-        Serial.println("The button is pressed");
-        // TODO do something here
+        joystickZAxis = !joystickZAxis;
     }
-    if (joystickButton.isReleased())
+    // if (joystickButton.isReleased())
+    // {
+    //     Serial.println("The button is released");
+    //     // TODO do something here
+    // }
+
+    if (joystickZAxis)
     {
-        Serial.println("The button is released");
-        // TODO do something here
+        Serial.println("Z axis activated");
+        if ((joystickYValue >= 490) && (joystickYValue <= 530))
+        {
+            // set Z stil
+            joystickYSpeed = 0;
+            setMotorSpeed(Z, 0);
+        }
+        if (joystickYValue > 550)
+        {
+            // set Z omlaag
+            setMotorDirection(Z, true);
+            setMotorSpeed(Z, map(joystickYValue, 550, 1020, 10, 254));
+            joystickYSpeed = map(joystickYValue, 550, 1020, 10, 254);
+        }
+        if (joystickYValue < 470)
+        {
+            // set Z omhoog
+            setMotorDirection(Z, false);
+            setMotorSpeed(Z, map(joystickYValue, 470, 0, 10, 254));
+            joystickYSpeed = map(joystickYValue, 470, 0, 10, 254);
+        }
+        return;
     }
 
     // X SPEED //
     if ((joystickXValue >= 490) && (joystickXValue <= 530))
     {
-        // pleur x stil
+        // set x stil
         joystickXSpeed = 0;
         setMotorSpeed(X, 0);
     }
     if (joystickXValue > 550)
     {
-        // pleur x links
+        // set x links
         setMotorDirection(X, false);
         setMotorSpeed(X, map(joystickXValue, 550, 1020, 10, 254));
         joystickXSpeed = map(joystickXValue, 550, 1020, 10, 254);
@@ -118,29 +168,29 @@ void checkJoystick()
 
     if (joystickXValue < 470)
     {
-        // pleur x rechts
+        // set x rechts
         setMotorDirection(X, true);
-        setMotorSpeed(X, map(joystickXValue, 470, 0, 10, 255));
-        joystickXSpeed = map(joystickXValue, 470, 0, 10, 255);
+        setMotorSpeed(X, map(joystickXValue, 470, 0, 10, 254));
+        joystickXSpeed = map(joystickXValue, 470, 0, 10, 254);
     }
 
     // Y SPEED //
     if ((joystickYValue >= 490) && (joystickYValue <= 530))
     {
-        // pleur y stil
+        // set y stil
         joystickYSpeed = 0;
         setMotorSpeed(Y, 0);
     }
     if (joystickYValue > 550)
     {
-        // pleur y omlaag
+        // set y omlaag
         setMotorDirection(Y, true);
         setMotorSpeed(Y, map(joystickYValue, 550, 1020, 10, 254));
         joystickYSpeed = map(joystickYValue, 550, 1020, 10, 254);
     }
     if (joystickYValue < 470)
     {
-        // pleur y omhoog
+        // set y omhoog
         setMotorDirection(Y, false);
         setMotorSpeed(Y, map(joystickYValue, 470, 0, 10, 254));
         joystickYSpeed = map(joystickYValue, 470, 0, 10, 254);
@@ -167,6 +217,7 @@ void setMotorSpeed(axis axis, int speed)
         analogWrite(Y_MOTOR_SPEED, speed);
         break;
     case Z:
+        sentSpeedData((speed > 2) ? speed : 2);
         break;
     default:
         break;
@@ -190,7 +241,8 @@ void setMotorDirection(axis axis, bool direction)
         target = Y_MOTOR_DIRECTION;
         break;
     case Z:
-
+        sentDirectionData(direction);
+        return;
         break;
     default:
         break;
@@ -202,4 +254,24 @@ void setMotorDirection(axis axis, bool direction)
         return;
     }
     digitalWrite(target, LOW);
+}
+/**
+ * sent direction to second arduino
+ * @param direction true = forward, false = backward
+ */
+void sentDirectionData(bool direction)
+{
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(direction);
+    Wire.endTransmission();
+}
+/**
+ * sent speed to second arduino
+ * @param speed 3 - 255 | 2 to stop
+ */
+void sentSpeedData(int speed)
+{
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(speed);
+    Wire.endTransmission();
 }
