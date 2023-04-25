@@ -30,10 +30,6 @@ ezButton joystickButton(JOYSTICK_BUTTON_PIN);
 int joystickXValue = 0;
 int joystickYValue = 0;
 int joystickButtonValue = 0;
-int joystickZSpeed = 0;
-// setup the calculated speed based on the joystick values
-int joystickXSpeed;
-int joystickYSpeed;
 // toggle between the XY and Z axis
 bool joystickZAxis = false;
 
@@ -61,7 +57,6 @@ void loop()
 
 void sentData()
 {
-
     // Send value to slave
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
     Wire.write(sent);
@@ -108,7 +103,9 @@ void checkMessages()
         setMotorSpeed(Y, 0);
     }
 }
-
+/**
+ * this function checks the joystick values and sets the targeted axis's motor speed and direction
+ */
 void checkJoystick()
 {
     joystickButton.loop();
@@ -116,41 +113,31 @@ void checkJoystick()
     joystickYValue = analogRead(JOYSTICK_Y_PIN);
     joystickButtonValue = joystickButton.getState();
     if (joystickButton.isPressed())
-    {
         joystickZAxis = !joystickZAxis;
-    }
-
     if (joystickZAxis)
     {
-        Serial.println("Z axis activated");
-        if ((joystickYValue >= 490) && (joystickYValue <= 530))
-        {
-            // set Z stil
-            joystickYSpeed = 0;
-            setMotorSpeed(Z, 0);
-        }
-        if (joystickYValue > 550)
-        {
-            // set Z omlaag
-            setMotorDirection(Z, true);
-            setMotorSpeed(Z, map(joystickYValue, 550, 1020, 10, 254));
-            joystickYSpeed = map(joystickYValue, 550, 1020, 10, 254);
-        }
-        if (joystickYValue < 470)
-        {
-            // set Z omhoog
-            setMotorDirection(Z, false);
-            setMotorSpeed(Z, map(joystickYValue, 470, 0, 10, 254));
-            joystickYSpeed = map(joystickYValue, 470, 0, 10, 254);
-        }
+        // set other axis stil to prevent drifting
+        setMotorSpeed(Y, 0);
+        setMotorSpeed(X, 0);
+        joystickControlZAxis();
         return;
     }
+    // set Z axis stil to prevent drifting
+    setMotorSpeed(Z, 0);
+    joystickControlXAxis();
+    joystickControlYAxis();
+}
 
+/**
+ * this function sets the motor speed and direction of the X axis.
+ * this is based on the joystick value
+ */
+void joystickControlXAxis()
+{
     // X SPEED //
     if ((joystickXValue >= 490) && (joystickXValue <= 530))
     {
         // set x stil
-        joystickXSpeed = 0;
         setMotorSpeed(X, 0);
     }
     if (joystickXValue > 550)
@@ -158,7 +145,6 @@ void checkJoystick()
         // set x links
         setMotorDirection(X, false);
         setMotorSpeed(X, map(joystickXValue, 550, 1020, 10, 254));
-        joystickXSpeed = map(joystickXValue, 550, 1020, 10, 254);
     }
 
     if (joystickXValue < 470)
@@ -166,14 +152,19 @@ void checkJoystick()
         // set x rechts
         setMotorDirection(X, true);
         setMotorSpeed(X, map(joystickXValue, 470, 0, 10, 254));
-        joystickXSpeed = map(joystickXValue, 470, 0, 10, 254);
     }
+}
 
+/**
+ * this function sets the motor speed and direction of the Y axis.
+ * this is based on the joystick value
+ */
+void joystickControlYAxis()
+{
     // Y SPEED //
     if ((joystickYValue >= 490) && (joystickYValue <= 530))
     {
         // set y stil
-        joystickYSpeed = 0;
         setMotorSpeed(Y, 0);
     }
     if (joystickYValue > 550)
@@ -181,19 +172,38 @@ void checkJoystick()
         // set y omlaag
         setMotorDirection(Y, true);
         setMotorSpeed(Y, map(joystickYValue, 550, 1020, 10, 254));
-        joystickYSpeed = map(joystickYValue, 550, 1020, 10, 254);
     }
     if (joystickYValue < 470)
     {
         // set y omhoog
         setMotorDirection(Y, false);
         setMotorSpeed(Y, map(joystickYValue, 470, 0, 10, 254));
-        joystickYSpeed = map(joystickYValue, 470, 0, 10, 254);
     }
-    Serial.print("joystickXSpeed= ");
-    Serial.print(joystickXSpeed);
-    Serial.print(" ,joystickYSpeed= ");
-    Serial.println(joystickYSpeed);
+}
+
+/**
+ * this function sets the motor speed and direction of the Z axis.
+ * this is based on the joystick value
+ */
+void joystickControlZAxis()
+{
+    if ((joystickYValue >= 490) && (joystickYValue <= 530))
+    {
+        // set Z stil
+        setMotorSpeed(Z, 0);
+    }
+    if (joystickYValue > 550)
+    {
+        // set Z omlaag
+        setMotorDirection(Z, true);
+        setMotorSpeed(Z, map(joystickYValue, 550, 1020, 10, 254));
+    }
+    if (joystickYValue < 470)
+    {
+        // set Z omhoog
+        setMotorDirection(Z, false);
+        setMotorSpeed(Z, map(joystickYValue, 470, 0, 10, 254));
+    }
 }
 
 /**
