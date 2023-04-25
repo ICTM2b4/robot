@@ -1,4 +1,12 @@
+#include <Wire.h>
+// params for receiving data from old arduino
+#define I2C_SLAVE_ADDRESS 11
+#define PAYLOAD_SIZE 2
 
+int sent = 0;
+int receive = 0;
+bool direction = false;
+int Zspeed = 0;
 
 // setup the motors
 #define Z_MOTOR_DIRECTION 12
@@ -10,6 +18,12 @@ void setup()
     // setup motor
     pinMode(Z_MOTOR_DIRECTION, OUTPUT);
     pinMode(Z_MOTOR_SPEED, OUTPUT);
+    // setup comunicatie I2C
+    Wire.begin(I2C_SLAVE_ADDRESS);
+    Serial.begin(9600);
+    // setup functies voor I2C
+    Wire.onRequest(requestEvents);
+    Wire.onReceive(receiveEvents);
 }
 
 void loop()
@@ -43,6 +57,31 @@ void checkMessages()
     {
         setMotorSpeed(0);
     }
+}
+
+/**
+ *functie voor het versturen van data
+ */
+void requestEvents()
+{
+    Wire.write(sent);
+}
+
+/**
+ *functie voor het ontvangen van data
+ */
+void receiveEvents(int numBytes)
+{
+    receive = Wire.read();
+    Serial.println(receive);
+    if (receive == 1)
+        setMotorDirection(true);
+    if (receive == 2)
+        setMotorDirection(false);
+    if (receive == 3)
+        setMotorSpeed(0);
+    if (receive >= 4)
+        setMotorSpeed(receive);
 }
 
 /**

@@ -119,11 +119,6 @@ void checkJoystick()
     {
         joystickZAxis = !joystickZAxis;
     }
-    // if (joystickButton.isReleased())
-    // {
-    //     Serial.println("The button is released");
-    //     // TODO do something here
-    // }
 
     if (joystickZAxis)
     {
@@ -217,7 +212,7 @@ void setMotorSpeed(axis axis, int speed)
         analogWrite(Y_MOTOR_SPEED, speed);
         break;
     case Z:
-        sentSpeedData((speed > 2) ? speed : 2);
+        sentSpeedData((speed > 3) ? speed : 3);
         break;
     default:
         break;
@@ -262,7 +257,7 @@ void setMotorDirection(axis axis, bool direction)
 void sentDirectionData(bool direction)
 {
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
-    Wire.write(direction);
+    Wire.write(direction ? 2 : 1);
     Wire.endTransmission();
 }
 /**
