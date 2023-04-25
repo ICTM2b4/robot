@@ -1,8 +1,5 @@
 #include <Wire.h>
-
-# define I2C_SLAVE1_ADDRESS 11
-
-
+# define I2C_SLAVE1_ADDRESS 11 // slava adress
 #define PAYLOAD_SIZE 2
 
 int sent=1;
