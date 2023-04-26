@@ -1,7 +1,8 @@
 const int interruptPin = 2;
 bool emergencyButtonstate = false;
 
-void setup() {
+void setup()
+{
   // put your setup code here, to run once:
   pinMode(interruptPin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(interruptPin), emergencyButton, FALLING);
@@ -9,8 +10,10 @@ void setup() {
   Serial.begin(9600);
 }
 
-void loop() {
-  if (emergencyButtonstate) {
+void loop()
+{
+  if (emergencyButtonstate)
+  {
     emergencyButtonloop();
     return;
   }
@@ -18,22 +21,24 @@ void loop() {
 }
 /**
  * emergencyButton interupt function
-*/
-void emergencyButton() {
+ */
+void emergencyButton()
+{
   emergencyButtonstate = true;
   Serial.println("emergencyButton knop ingedrukt");
 }
 /**
  *emergencyButton reset function
-  */ 
-void emergencyButtonloop() {
-
-
+ */
+void emergencyButtonloop()
+{
   String serialInput;
-  if (Serial.available() > 0) {
+  if (Serial.available() > 0)
+  {
     serialInput = Serial.readString();
   }
-  if (serialInput == "reset") {
+  if (serialInput == "reset")
+  {
     Serial.println("emergencyButton gereset");
     emergencyButtonstate = false;
   }
