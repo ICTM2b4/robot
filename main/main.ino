@@ -5,9 +5,6 @@
 #define I2C_SLAVE1_ADDRESS 11 // slava adress
 #define PAYLOAD_SIZE 2
 
-int sent = 0;
-// int recieve=0;
-
 // setup the motors
 #define X_MOTOR_DIRECTION 12
 #define X_MOTOR_SPEED 3
@@ -32,6 +29,8 @@ int joystickYValue = 0;
 int joystickButtonValue = 0;
 // toggle between the XY and Z axis
 bool joystickZAxis = false;
+// toggle between joystick and serial control
+bool allowJoystickControl = true;
 
 void setup()
 {
@@ -51,16 +50,15 @@ void setup()
 void loop()
 {
     checkMessages();
-    checkJoystick();
-    sentData();
+    if (allowJoystickControl)
+        checkJoystick();
 }
-
-void sentData()
+/**
+ * this function sends data to the HMI application
+ */
+void sentMessage(String message)
 {
-    // Send value to slave
-    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
-    Wire.write(sent);
-    Wire.endTransmission();
+    Serial.print(message);
 }
 
 /**
@@ -69,38 +67,64 @@ void sentData()
  */
 void checkMessages()
 {
+    // check if there is a message, if not, return
     if (Serial.available() <= 0)
         return;
-    String ontvangen = Serial.readString();
-    Serial.println(ontvangen);
-
-    if (ontvangen == "X+")
+    // read the message
+    String message = "";
+    while (Serial.available())
+    {
+        char c = Serial.read();
+        message += c;
+        delay(2);
+    }
+    // toggle between joystick and serial control
+    if (message == "enableControlFromHMI")
+        allowJoystickControl = false;
+    if (message == "disableControlFromHMI")
+        allowJoystickControl = true;
+    // manual control
+    if (message == "X+")
     {
         setMotorDirection(X, true);
         setMotorSpeed(X, 255);
     }
-    else if (ontvangen == "X-")
+    else if (message == "X-")
     {
         setMotorDirection(X, false);
         setMotorSpeed(X, 255);
     }
-    else if (ontvangen == "Y+")
+    else if (message == "Y+")
     {
         setMotorDirection(Y, true);
         setMotorSpeed(Y, 255);
     }
-    else if (ontvangen == "Y-")
+    else if (message == "Y-")
     {
         setMotorDirection(Y, false);
         setMotorSpeed(Y, 255);
     }
-    else if (ontvangen == "X0")
+    else if (message == "Z+")
+    {
+        setMotorDirection(Z, false);
+        setMotorSpeed(Z, 255);
+    }
+    else if (message == "Z-")
+    {
+        setMotorDirection(Z, true);
+        setMotorSpeed(Z, 255);
+    }
+    else if (message == "X0")
     {
         setMotorSpeed(X, 0);
     }
-    else if (ontvangen == "Y0")
+    else if (message == "Y0")
     {
         setMotorSpeed(Y, 0);
+    }
+    else if (message == "Z0")
+    {
+        setMotorSpeed(Z, 0);
     }
 }
 /**
