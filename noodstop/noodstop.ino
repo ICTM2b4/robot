@@ -1,32 +1,32 @@
 const int interruptPin = 2;
-bool noodstopstate = false;
+bool emergencyButtonstate = false;
 
 void setup() {
   // put your setup code here, to run once:
   pinMode(interruptPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin), noodstop, FALLING);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), emergencyButton, FALLING);
 
   Serial.begin(9600);
 }
 
 void loop() {
-  if (noodstopstate) {
-    noodstoploop();
+  if (emergencyButtonstate) {
+    emergencyButtonloop();
     return;
   }
-  Serial.println("noodstop niet actief");
+  Serial.println("emergencyButton niet actief");
 }
 /**
- * noodstop interupt function
+ * emergencyButton interupt function
 */
-void noodstop() {
-  noodstopstate = true;
-  Serial.println("noodstop knop ingedrukt");
+void emergencyButton() {
+  emergencyButtonstate = true;
+  Serial.println("emergencyButton knop ingedrukt");
 }
 /**
- *noodstop reset function
+ *emergencyButton reset function
   */ 
-void noodstoploop() {
+void emergencyButtonloop() {
 
 
   String serialInput;
@@ -34,9 +34,9 @@ void noodstoploop() {
     serialInput = Serial.readString();
   }
   if (serialInput == "reset") {
-    Serial.println("noodstop gereset");
-    noodstopstate = false;
+    Serial.println("emergencyButton gereset");
+    emergencyButtonstate = false;
   }
 
-  Serial.println("noodstop actief");
+  Serial.println("emergencyButton actief");
 }
