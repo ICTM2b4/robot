@@ -5,19 +5,23 @@
 
 int sent = 0;
 int receive = 0;
-bool direction = false;
-int Zspeed = 0;
 
 // setup the motors
 #define Z_MOTOR_DIRECTION 12
 #define Z_MOTOR_SPEED 3
-
+#define Z_MOTOR_POSITION_PIN 2
+bool zMotorDirection;
+int motorPosition = 0;
+bool showedZero;
 void setup()
 {
     Serial.begin(9600);
     // setup motor
     pinMode(Z_MOTOR_DIRECTION, OUTPUT);
     pinMode(Z_MOTOR_SPEED, OUTPUT);
+    pinMode(Z_MOTOR_POSITION_PIN, INPUT_PULLUP);
+    // setup interrupt for motor position sensor (z-as)
+    attachInterrupt(digitalPinToInterrupt(Z_MOTOR_POSITION_PIN), checkMotorPosition, RISING);
     // setup comunicatie I2C
     Wire.begin(I2C_SLAVE_ADDRESS);
     Serial.begin(9600);
@@ -29,6 +33,18 @@ void setup()
 void loop()
 {
     checkMessages();
+    Serial.println(motorPosition);
+}
+
+/**
+ *  Check the position of the motor and update the motorPosition variable
+ *  keep the motorPosition variable between 0 and 920 for accuracy
+ */
+void checkMotorPosition()
+{
+    if (motorPosition == 0 && !zMotorDirection || motorPosition == 920 && zMotorDirection)
+        return;
+    motorPosition = zMotorDirection ? motorPosition + 1 : motorPosition - 1;
 }
 
 /**
@@ -40,7 +56,6 @@ void checkMessages()
     if (Serial.available() <= 0)
         return;
     String ontvangen = Serial.readString();
-    Serial.println(ontvangen);
 
     if (ontvangen == "Z+")
     {
@@ -73,7 +88,6 @@ void requestEvents()
 void receiveEvents(int numBytes)
 {
     receive = Wire.read();
-    Serial.println(receive);
     if (receive == 1)
         setMotorDirection(true);
     if (receive == 2)
@@ -90,6 +104,8 @@ void receiveEvents(int numBytes)
  */
 void setMotorSpeed(int speed)
 {
+    if (speed > 100)
+        speed = 100;
     analogWrite(Z_MOTOR_SPEED, speed);
 }
 
@@ -99,6 +115,7 @@ void setMotorSpeed(int speed)
  */
 void setMotorDirection(bool direction)
 {
+    zMotorDirection = direction;
     if (direction)
     {
         digitalWrite(Z_MOTOR_DIRECTION, LOW);
