@@ -20,7 +20,7 @@ enum axis
 // setup the joystick pins
 #define JOYSTICK_X_PIN A2
 #define JOYSTICK_Y_PIN A3
-#define JOYSTICK_BUTTON_PIN 2
+#define JOYSTICK_BUTTON_PIN 4
 // setup the joystick with the ezButton library
 ezButton joystickButton(JOYSTICK_BUTTON_PIN);
 // setup the joystick values
@@ -246,7 +246,7 @@ void setMotorSpeed(axis axis, int speed)
         analogWrite(Y_MOTOR_SPEED, speed);
         break;
     case Z:
-        sentSpeedData((speed > 3) ? speed : 3);
+        sentSpeedData((speed > 100) ? 100 : speed);
         break;
     default:
         break;
@@ -291,12 +291,12 @@ void setMotorDirection(axis axis, bool direction)
 void sentDirectionData(bool direction)
 {
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
-    Wire.write(direction ? 2 : 1);
+    Wire.write(direction ? 102 : 101);
     Wire.endTransmission();
 }
 /**
  * sent speed to second arduino
- * @param speed 3 - 255 | 2 to stop
+ * @param speed 0 - 100
  */
 void sentSpeedData(int speed)
 {

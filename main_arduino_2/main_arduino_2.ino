@@ -7,12 +7,12 @@ int sent = 0;
 int receive = 0;
 
 // setup the motors
-#define Z_MOTOR_DIRECTION 12
-#define Z_MOTOR_SPEED 3
+#define Z_MOTOR_DIRECTION 13
+#define Z_MOTOR_SPEED 11
 #define Z_MOTOR_POSITION_PIN 2
+#define X_MOTOR_POSITION_PIN 3
 bool zMotorDirection;
-int motorPosition = 0;
-bool showedZero;
+int zMotorPosistion = 0;
 void setup()
 {
     Serial.begin(9600);
@@ -20,8 +20,9 @@ void setup()
     pinMode(Z_MOTOR_DIRECTION, OUTPUT);
     pinMode(Z_MOTOR_SPEED, OUTPUT);
     pinMode(Z_MOTOR_POSITION_PIN, INPUT_PULLUP);
-    // setup interrupt for motor position sensor (z-as)
-    attachInterrupt(digitalPinToInterrupt(Z_MOTOR_POSITION_PIN), checkMotorPosition, RISING);
+    // setup interrupt for motor position sensors (X and Z axis)
+    attachInterrupt(digitalPinToInterrupt(Z_MOTOR_POSITION_PIN), setZMotorPosistion, RISING);
+    attachInterrupt(digitalPinToInterrupt(X_MOTOR_POSITION_PIN), setXMotorPosistion, RISING);
     // setup comunicatie I2C
     Wire.begin(I2C_SLAVE_ADDRESS);
     Serial.begin(9600);
@@ -32,46 +33,28 @@ void setup()
 
 void loop()
 {
-    checkMessages();
-    Serial.println(motorPosition);
+    Serial.println(zMotorPosistion);
 }
 
 /**
- *  Check the position of the motor and update the motorPosition variable
- *  keep the motorPosition variable between 0 and 920 for accuracy
+ *  Check the position of the motor and update the zMotorPosistion variable
+ *  keep the zMotorPosistion variable between 0 and 920 for accuracy
  */
-void checkMotorPosition()
+void setZMotorPosistion()
 {
-    if (motorPosition == 0 && !zMotorDirection || motorPosition == 920 && zMotorDirection)
+    if (zMotorPosistion == 0 && !zMotorDirection || zMotorPosistion == 920 && zMotorDirection)
         return;
-    motorPosition = zMotorDirection ? motorPosition + 1 : motorPosition - 1;
+    zMotorPosistion = zMotorDirection ? zMotorPosistion + 1 : zMotorPosistion - 1;
 }
-
 /**
- *  check if there is a message in the serial buffer
- *  if there is a message, read it and execute the related command
+ * Check the position of the motor and send it to the main arduino
  */
-void checkMessages()
+void setXMotorPosistion()
 {
-    if (Serial.available() <= 0)
-        return;
-    String ontvangen = Serial.readString();
-
-    if (ontvangen == "Z+")
-    {
-        setMotorDirection(true);
-        setMotorSpeed(255);
-    }
-    else if (ontvangen == "Z-")
-    {
-        setMotorDirection(false);
-        setMotorSpeed(255);
-    }
-
-    else if (ontvangen == "Z0")
-    {
-        setMotorSpeed(0);
-    }
+    // send message to old arduino
+    Wire.beginTransmission(I2C_SLAVE_ADDRESS);
+    Wire.write("");
+    Wire.endTransmission();
 }
 
 /**
@@ -88,13 +71,11 @@ void requestEvents()
 void receiveEvents(int numBytes)
 {
     receive = Wire.read();
-    if (receive == 1)
+    if (receive == 101)
         setMotorDirection(true);
-    if (receive == 2)
+    if (receive == 102)
         setMotorDirection(false);
-    if (receive == 3)
-        setMotorSpeed(0);
-    if (receive >= 4)
+    if (receive >= 0 && receive <= 100)
         setMotorSpeed(receive);
 }
 
