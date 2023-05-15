@@ -2,7 +2,7 @@
 
 // define en include voor commmunicatie
 #include <Wire.h>
-#define I2C_SLAVE1_ADDRESS 11 // slava adress
+#define I2C_SLAVE1_ADDRESS 11 // slave adress
 #define PAYLOAD_SIZE 2
 
 // setup the motors
@@ -31,12 +31,13 @@ int joystickButtonValue = 0;
 bool joystickZAxis = false;
 // toggle between joystick and serial control
 bool allowJoystickControl = true;
-
+// motor positions
+int xMotorPosistion;
+int yMotorPosistion;
 void setup()
 {
     // setup comunicatie I2C
     Wire.begin();
-
     Serial.begin(9600);
     // setup motor
     pinMode(X_MOTOR_DIRECTION, OUTPUT);
@@ -45,6 +46,7 @@ void setup()
     pinMode(Y_MOTOR_SPEED, OUTPUT);
     // setup the joystick
     joystickButton.setDebounceTime(50);
+    goToStart();
 }
 
 void loop()
@@ -52,8 +54,39 @@ void loop()
     checkMessages();
     if (allowJoystickControl)
         checkJoystick();
+    getMotorPositions();
 }
+
+void goToStart()
+{
+    // use millis to create a while loop for 20 seconds
+    long startTime = millis();
+    while (millis() - startTime < 15000)
+    {
+        setMotorDirection(X, true);
+        setMotorSpeed(X, 255);
+        setMotorDirection(Y, true);
+        setMotorSpeed(Y, 255);
+    }
+    setMotorSpeed(X, 0);
+    setMotorSpeed(Y, 0);
+    xMotorPosistion = 0;
+    yMotorPosistion = 0;
+}
+
 /**
+ *This function gets the motor positions from the second arduino
+ */
+void getMotorPositions()
+{
+    Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
+    xMotorPosistion = Wire.read();
+    Serial.println(xMotorPosistion);
+    yMotorPosistion = Wire.read();
+    Serial.println(yMotorPosistion);
+}
+
+/*
  * this function sends data to the HMI application
  */
 void sentMessage(String message)
@@ -240,10 +273,10 @@ void setMotorSpeed(axis axis, int speed)
     switch (axis)
     {
     case X:
-        analogWrite(X_MOTOR_SPEED, speed);
+        analogWrite(X_MOTOR_SPEED, (speed > 200) ? 200 : speed);
         break;
     case Y:
-        analogWrite(Y_MOTOR_SPEED, speed);
+        analogWrite(Y_MOTOR_SPEED, (speed > 200) ? 200 : speed);
         break;
     case Z:
         sentSpeedData((speed > 100) ? 100 : speed);
@@ -265,12 +298,14 @@ void setMotorDirection(axis axis, bool direction)
     {
     case X:
         target = X_MOTOR_DIRECTION;
+        sentDirectionData(X, direction);
         break;
     case Y:
         target = Y_MOTOR_DIRECTION;
+        sentDirectionData(Y, direction);
         break;
     case Z:
-        sentDirectionData(direction);
+        sentDirectionData(Z, direction);
         return;
         break;
     default:
@@ -286,12 +321,18 @@ void setMotorDirection(axis axis, bool direction)
 }
 /**
  * sent direction to second arduino
+ * @param target X, Y or Z
  * @param direction true = forward, false = backward
  */
-void sentDirectionData(bool direction)
+void sentDirectionData(axis target, bool direction)
 {
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
-    Wire.write(direction ? 102 : 101);
+    if (target == X)
+        Wire.write(direction ? 103 : 104);
+    if (target == Y)
+        Wire.write(direction ? 105 : 106);
+    if (target == Z)
+        Wire.write(direction ? 102 : 101);
     Wire.endTransmission();
 }
 /**

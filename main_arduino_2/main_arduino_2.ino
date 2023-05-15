@@ -9,19 +9,22 @@ int receive = 0;
 // setup the motors
 #define Z_MOTOR_DIRECTION 13
 #define Z_MOTOR_SPEED 11
-#define Z_MOTOR_POSITION_PIN 2
 #define X_MOTOR_POSITION_PIN 3
+#define Y_MOTOR_POSITION_PIN 2
 bool zMotorDirection;
-int zMotorPosistion = 0;
+bool xMotorDirection;
+bool yMotorDirection;
+int xMotorPosistion = 0;
+int yMotorPosistion = 0;
 void setup()
 {
     Serial.begin(9600);
     // setup motor
     pinMode(Z_MOTOR_DIRECTION, OUTPUT);
     pinMode(Z_MOTOR_SPEED, OUTPUT);
-    pinMode(Z_MOTOR_POSITION_PIN, INPUT_PULLUP);
+    pinMode(Y_MOTOR_POSITION_PIN, INPUT_PULLUP);
     // setup interrupt for motor position sensors (X and Z axis)
-    attachInterrupt(digitalPinToInterrupt(Z_MOTOR_POSITION_PIN), setZMotorPosistion, RISING);
+    attachInterrupt(digitalPinToInterrupt(Y_MOTOR_POSITION_PIN), setYMotorPosistion, RISING);
     attachInterrupt(digitalPinToInterrupt(X_MOTOR_POSITION_PIN), setXMotorPosistion, RISING);
     // setup comunicatie I2C
     Wire.begin(I2C_SLAVE_ADDRESS);
@@ -33,28 +36,27 @@ void setup()
 
 void loop()
 {
-    Serial.println(zMotorPosistion);
+    // Serial.println(zMotorPosistion);
 }
 
 /**
  *  Check the position of the motor and update the zMotorPosistion variable
  *  keep the zMotorPosistion variable between 0 and 920 for accuracy
  */
-void setZMotorPosistion()
+void setYMotorPosistion()
 {
-    if (zMotorPosistion == 0 && !zMotorDirection || zMotorPosistion == 920 && zMotorDirection)
-        return;
-    zMotorPosistion = zMotorDirection ? zMotorPosistion + 1 : zMotorPosistion - 1;
+    // if (yMotorPosistion == 0 && !yMotorDirection || yMotorPosistion == 920 && yMotorDirection)
+    //     return;
+    yMotorPosistion = yMotorDirection ? yMotorPosistion + 1 : yMotorPosistion - 1;
 }
 /**
  * Check the position of the motor and send it to the main arduino
  */
 void setXMotorPosistion()
 {
-    // send message to old arduino
-    Wire.beginTransmission(I2C_SLAVE_ADDRESS);
-    Wire.write("");
-    Wire.endTransmission();
+    // if (xMotorPosistion == 0 && !xMotorDirection || xMotorPosistion == 920 && xMotorDirection)
+    //     return;
+    xMotorPosistion = xMotorDirection ? xMotorPosistion + 1 : xMotorPosistion - 1;
 }
 
 /**
@@ -62,7 +64,8 @@ void setXMotorPosistion()
  */
 void requestEvents()
 {
-    Wire.write(sent);
+    Wire.write(xMotorPosistion);
+    Wire.write(yMotorPosistion);
 }
 
 /**
@@ -77,6 +80,14 @@ void receiveEvents(int numBytes)
         setMotorDirection(false);
     if (receive >= 0 && receive <= 100)
         setMotorSpeed(receive);
+    if (receive == 103)
+        xMotorDirection = true;
+    if (receive == 104)
+        xMotorDirection = false;
+    if (receive == 105)
+        yMotorDirection = true;
+    if (receive == 106)
+        yMotorDirection = false;
 }
 
 /**
