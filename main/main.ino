@@ -34,6 +34,7 @@ bool allowJoystickControl = true;
 // motor positions
 int xMotorPosistion;
 int yMotorPosistion;
+bool yMotorDirection;
 void setup()
 {
     // setup comunicatie I2C
@@ -46,7 +47,7 @@ void setup()
     pinMode(Y_MOTOR_SPEED, OUTPUT);
     // setup the joystick
     joystickButton.setDebounceTime(50);
-    goToStart();
+    // goToStart();
 }
 
 void loop()
@@ -56,7 +57,9 @@ void loop()
         checkJoystick();
     getMotorPositions();
 }
-
+/**
+ * this function sends the robots arm to the start position
+ */
 void goToStart()
 {
     // use millis to create a while loop for 20 seconds
@@ -72,8 +75,20 @@ void goToStart()
     setMotorSpeed(Y, 0);
     xMotorPosistion = 0;
     yMotorPosistion = 0;
+    resetMotorPositions();
 }
 
+/**
+ * this function resets the motor positions on both arduinos
+ */
+void resetMotorPositions()
+{
+    xMotorPosistion = 0;
+    yMotorPosistion = 0;
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(107);
+    Wire.endTransmission();
+}
 /**
  *This function gets the motor positions from the second arduino
  */
@@ -83,10 +98,10 @@ void getMotorPositions()
     xMotorPosistion = Wire.read();
     Serial.println(xMotorPosistion);
     yMotorPosistion = Wire.read();
-    Serial.println(yMotorPosistion);
+    // Serial.println(yMotorPosistion);
 }
 
-/*
+/**
  * this function sends data to the HMI application
  */
 void sentMessage(String message)
@@ -116,6 +131,9 @@ void checkMessages()
         allowJoystickControl = false;
     if (message == "disableControlFromHMI")
         allowJoystickControl = true;
+    // go to start position
+    if (message == "goToStart")
+        goToStart();
     // manual control
     if (message == "X+")
     {
@@ -276,7 +294,10 @@ void setMotorSpeed(axis axis, int speed)
         analogWrite(X_MOTOR_SPEED, (speed > 200) ? 200 : speed);
         break;
     case Y:
-        analogWrite(Y_MOTOR_SPEED, (speed > 200) ? 200 : speed);
+        if (yMotorDirection)
+            analogWrite(Y_MOTOR_SPEED, (speed > 200) ? 200 : speed);
+        else
+            analogWrite(Y_MOTOR_SPEED, (speed > 255) ? 255 : speed);
         break;
     case Z:
         sentSpeedData((speed > 100) ? 100 : speed);
@@ -302,6 +323,7 @@ void setMotorDirection(axis axis, bool direction)
         break;
     case Y:
         target = Y_MOTOR_DIRECTION;
+        yMotorDirection = direction;
         sentDirectionData(Y, direction);
         break;
     case Z:
@@ -336,7 +358,7 @@ void sentDirectionData(axis target, bool direction)
     Wire.endTransmission();
 }
 /**
- * sent speed to second arduino
+ * sent speed to second arduino for the Z axis
  * @param speed 0 - 100
  */
 void sentSpeedData(int speed)

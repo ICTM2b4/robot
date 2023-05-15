@@ -36,7 +36,6 @@ void setup()
 
 void loop()
 {
-    // Serial.println(zMotorPosistion);
 }
 
 /**
@@ -45,18 +44,18 @@ void loop()
  */
 void setYMotorPosistion()
 {
-    // if (yMotorPosistion == 0 && !yMotorDirection || yMotorPosistion == 920 && yMotorDirection)
-    //     return;
-    yMotorPosistion = yMotorDirection ? yMotorPosistion + 1 : yMotorPosistion - 1;
+    if (yMotorPosistion == 0 && yMotorDirection || yMotorPosistion == 2987 && !yMotorDirection)
+        return;
+    yMotorPosistion = yMotorDirection ? yMotorPosistion - 1 : yMotorPosistion + 1;
 }
 /**
  * Check the position of the motor and send it to the main arduino
  */
 void setXMotorPosistion()
 {
-    // if (xMotorPosistion == 0 && !xMotorDirection || xMotorPosistion == 920 && xMotorDirection)
-    //     return;
-    xMotorPosistion = xMotorDirection ? xMotorPosistion + 1 : xMotorPosistion - 1;
+    if (xMotorPosistion == 0 && xMotorDirection || xMotorPosistion == 4931 && !xMotorDirection)
+        return;
+    xMotorPosistion = xMotorDirection ? xMotorPosistion - 1 : xMotorPosistion + 1;
 }
 
 /**
@@ -88,6 +87,14 @@ void receiveEvents(int numBytes)
         yMotorDirection = true;
     if (receive == 106)
         yMotorDirection = false;
+    if (receive == 107)
+        resetMotorPositions();
+}
+
+void resetMotorPositions()
+{
+    xMotorPosistion = 0;
+    yMotorPosistion = 0;
 }
 
 /**
