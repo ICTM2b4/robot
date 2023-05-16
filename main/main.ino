@@ -78,6 +78,44 @@ void goToStart()
     resetMotorPositions();
 }
 
+void goToCords(int x, int y)
+{
+    while (xMotorPosistion != x && yMotorPosistion != y)
+    {
+        Serial.println("target: " + String(x) + " " + String(y) + " current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
+        getMotorPositions();
+        if (xMotorPosistion < x)
+        {
+            setMotorDirection(X, false);
+            setMotorSpeed(X, 255);
+        }
+        else if (xMotorPosistion > x)
+        {
+            setMotorDirection(X, true);
+            setMotorSpeed(X, 255);
+        }
+        else
+        {
+            setMotorSpeed(X, 0);
+        }
+
+        if (yMotorPosistion < y)
+        {
+            setMotorDirection(Y, false);
+            setMotorSpeed(Y, 255);
+        }
+        else if (yMotorPosistion > y)
+        {
+            setMotorDirection(Y, true);
+            setMotorSpeed(Y, 255);
+        }
+        else
+        {
+            setMotorSpeed(Y, 0);
+        }
+    }
+}
+
 /**
  * this function resets the motor positions on both arduinos
  */
@@ -94,11 +132,9 @@ void resetMotorPositions()
  */
 void getMotorPositions()
 {
-    Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
+    Wire.requestFrom(I2C_SLAVE1_ADDRESS, 4);
     xMotorPosistion = Wire.read();
-    Serial.println(xMotorPosistion);
     yMotorPosistion = Wire.read();
-    // Serial.println(yMotorPosistion);
 }
 
 /**
@@ -134,6 +170,8 @@ void checkMessages()
     // go to start position
     if (message == "goToStart")
         goToStart();
+    if (message == "goToCords")
+        goToCords(1000, 1000);
     // manual control
     if (message == "X+")
     {
