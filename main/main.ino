@@ -35,6 +35,9 @@ bool allowJoystickControl = true;
 int xMotorPosistion;
 int yMotorPosistion;
 bool yMotorDirection;
+// locations of the warehouse
+int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
+int yLocations[5] = {2317, 1814, 1288, 776, 269};
 // enable debug mode
 bool debug = true;
 void setup()
