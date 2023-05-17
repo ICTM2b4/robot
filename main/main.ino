@@ -201,51 +201,31 @@ void checkMessages()
     // go to start position
     if (message == "goToStart")
         goToStart();
-    if (message == "goToCords")
-        goToCords(1000, 1000);
-    // manual control
-    if (message == "X+")
+    if (message.startsWith("goToCords(") && message.endsWith(")"))
+        goToCords(getCordFromMessage(X, message), getCordFromMessage(Y, message));
+}
+
+int getCordFromMessage(axis target, String message)
+{
+    message.remove(0, 10); // Remove "goToCords(" from the beginning of the string
+    message.remove(message.length() - 1);
+
+    int commaIndex = message.indexOf(',');
+
+    if (commaIndex != -1)
     {
-        setMotorDirection(X, true);
-        setMotorSpeed(X, 255);
+        if (target == X)
+        {
+            String xString = message.substring(0, commaIndex); // Extract the substring before the comma
+            return xString.toInt();
+        }
+        if (target == Y)
+        {
+            String yString = message.substring(commaIndex + 1); // Extract the substring after the comma
+            return yString.toInt();
+        }
     }
-    else if (message == "X-")
-    {
-        setMotorDirection(X, false);
-        setMotorSpeed(X, 255);
-    }
-    else if (message == "Y+")
-    {
-        setMotorDirection(Y, true);
-        setMotorSpeed(Y, 255);
-    }
-    else if (message == "Y-")
-    {
-        setMotorDirection(Y, false);
-        setMotorSpeed(Y, 255);
-    }
-    else if (message == "Z+")
-    {
-        setMotorDirection(Z, false);
-        setMotorSpeed(Z, 255);
-    }
-    else if (message == "Z-")
-    {
-        setMotorDirection(Z, true);
-        setMotorSpeed(Z, 255);
-    }
-    else if (message == "X0")
-    {
-        setMotorSpeed(X, 0);
-    }
-    else if (message == "Y0")
-    {
-        setMotorSpeed(Y, 0);
-    }
-    else if (message == "Z0")
-    {
-        setMotorSpeed(Z, 0);
-    }
+    return 0;
 }
 /**
  * this function checks the joystick values and sets the targeted axis's motor speed and direction
