@@ -82,7 +82,7 @@ void setXMotorPosistion()
 void requestEvents()
 {
     if(sentStart){
-        Wire.write();
+        Wire.write(startStates);
         sentStart = false;
         return;
     }
