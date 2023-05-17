@@ -35,6 +35,8 @@ bool allowJoystickControl = true;
 int xMotorPosistion;
 int yMotorPosistion;
 bool yMotorDirection;
+// enable debug mode
+bool debug = true;
 void setup()
 {
     // setup comunicatie I2C
@@ -52,10 +54,23 @@ void setup()
 
 void loop()
 {
+    if (debug)
+    {
+        printPosition();
+    }
+
     checkMessages();
     if (allowJoystickControl)
         checkJoystick();
     getMotorPositions();
+}
+
+/**
+ * print the current position of the robot in the serial monitor
+ */
+void printPosition()
+{
+    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
 }
 /**
  * this function sends the robots arm to the start position
@@ -80,10 +95,8 @@ void goToStart()
 
 void goToCords(int x, int y)
 {
-    while (xMotorPosistion != x && yMotorPosistion != y)
+    while (xMotorPosistion != x || yMotorPosistion != y)
     {
-        Serial.println("target: " + String(x) + " " + String(y) + " current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
-        getMotorPositions();
         if (xMotorPosistion < x)
         {
             setMotorDirection(X, false);
@@ -113,6 +126,7 @@ void goToCords(int x, int y)
         {
             setMotorSpeed(Y, 0);
         }
+        getMotorPositions();
     }
 }
 
@@ -132,9 +146,26 @@ void resetMotorPositions()
  */
 void getMotorPositions()
 {
-    Wire.requestFrom(I2C_SLAVE1_ADDRESS, 4);
-    xMotorPosistion = Wire.read();
-    yMotorPosistion = Wire.read();
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(108);
+    Wire.endTransmission();
+
+    Wire.requestFrom(I2C_SLAVE1_ADDRESS, sizeof(5000));
+    int receivedXValue = 0;
+    Wire.readBytes((byte *)&receivedXValue, sizeof(receivedXValue));
+    Wire.endTransmission();
+
+    xMotorPosistion = receivedXValue;
+
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(109);
+    Wire.endTransmission();
+
+    Wire.requestFrom(I2C_SLAVE1_ADDRESS, sizeof(5000));
+    int receivedYValue = 0;
+    Wire.readBytes((byte *)&receivedYValue, sizeof(receivedYValue));
+    yMotorPosistion = receivedYValue;
+    Wire.endTransmission();
 }
 
 /**
@@ -333,9 +364,9 @@ void setMotorSpeed(axis axis, int speed)
         break;
     case Y:
         if (yMotorDirection)
-            analogWrite(Y_MOTOR_SPEED, (speed > 200) ? 200 : speed);
+            analogWrite(Y_MOTOR_SPEED, (speed > 150) ? 150 : speed);
         else
-            analogWrite(Y_MOTOR_SPEED, (speed > 255) ? 255 : speed);
+            analogWrite(Y_MOTOR_SPEED, (speed > 200) ? 200 : speed);
         break;
     case Z:
         sentSpeedData((speed > 100) ? 100 : speed);

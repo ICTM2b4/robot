@@ -16,6 +16,9 @@ bool xMotorDirection;
 bool yMotorDirection;
 int xMotorPosistion = 0;
 int yMotorPosistion = 0;
+bool requestXMotorPosistion = false;
+int maxXMotorPosistions[] = {0, 4931};
+int maxYMotorPosistions[] = {0, 3000};
 void setup()
 {
     Serial.begin(9600);
@@ -36,16 +39,30 @@ void setup()
 
 void loop()
 {
+    fixMotorPositions();
+    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
 }
 
+/**
+ * fix the motor positions if they are out of bounds
+ */
+void fixMotorPositions()
+{
+    if (xMotorPosistion < maxXMotorPosistions[0])
+        xMotorPosistion = 0;
+    if (xMotorPosistion > maxXMotorPosistions[1])
+        xMotorPosistion = maxXMotorPosistions[1];
+    if (yMotorPosistion < maxYMotorPosistions[0])
+        yMotorPosistion = 0;
+    if (yMotorPosistion > maxYMotorPosistions[1])
+        yMotorPosistion = maxYMotorPosistions[1];
+}
 /**
  *  Check the position of the motor and update the zMotorPosistion variable
  *  keep the zMotorPosistion variable between 0 and 920 for accuracy
  */
 void setYMotorPosistion()
 {
-    if (yMotorPosistion == 0 && yMotorDirection || yMotorPosistion == 2987 && !yMotorDirection)
-        return;
     yMotorPosistion = yMotorDirection ? yMotorPosistion - 1 : yMotorPosistion + 1;
 }
 /**
@@ -53,8 +70,6 @@ void setYMotorPosistion()
  */
 void setXMotorPosistion()
 {
-    if (xMotorPosistion == 0 && xMotorDirection || xMotorPosistion == 4931 && !xMotorDirection)
-        return;
     xMotorPosistion = xMotorDirection ? xMotorPosistion - 1 : xMotorPosistion + 1;
 }
 
@@ -63,8 +78,14 @@ void setXMotorPosistion()
  */
 void requestEvents()
 {
-    Wire.write(xMotorPosistion);
-    Wire.write(yMotorPosistion);
+    if (requestXMotorPosistion)
+    {
+        Wire.write((byte *)&xMotorPosistion, sizeof(xMotorPosistion));
+    }
+    if (!requestXMotorPosistion)
+    {
+        Wire.write((byte *)&yMotorPosistion, sizeof(yMotorPosistion));
+    }
 }
 
 /**
@@ -89,6 +110,10 @@ void receiveEvents(int numBytes)
         yMotorDirection = false;
     if (receive == 107)
         resetMotorPositions();
+    if (receive == 108)
+        requestXMotorPosistion = true;
+    if (receive == 109)
+        requestXMotorPosistion = false;
 }
 
 void resetMotorPositions()
