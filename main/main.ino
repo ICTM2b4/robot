@@ -77,20 +77,48 @@ void printPosition()
  */
 void goToStart()
 {
-    // use millis to create a while loop for 20 seconds
-    long startTime = millis();
-    while (millis() - startTime < 15000)
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(110);
+    Wire.endTransmission();
+    bool isStart = true;
+    long MillisGoStart = millis();
+            setMotorDirection(X, true);
+            setMotorSpeed(X, 255);
+            setMotorDirection(Y, true);
+            setMotorSpeed(Y, 255);
+    while (isStart)
     {
-        setMotorDirection(X, true);
-        setMotorSpeed(X, 255);
-        setMotorDirection(Y, true);
-        setMotorSpeed(Y, 255);
+
+        if (millis() - MillisGoStart < 500)
+        {
+            Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+            Wire.write(111);
+            Wire.endTransmission();
+            Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
+            int receivedValue = Wire.read();
+            MillisGoStart = millis();
+            if(receivedValue == 0){
+                setMotorSpeed(X, 0);
+                setMotorSpeed(Y, 0);
+                xMotorPosistion = 0;
+                yMotorPosistion = 0;
+                resetMotorPositions();
+                isStart = false;
+                }
+            else if(receivedValue == 3){
+            setMotorDirection(X, true);
+            setMotorSpeed(X, 255);
+            setMotorDirection(Y, true);
+            setMotorSpeed(Y, 255);
+            }
+            else if(receivedValue == 2){
+            setMotorSpeed(X, 0);
+        }
+             else if(receivedValue == 1){
+            setMotorSpeed(Y, 0);
+        }
+        }
     }
-    setMotorSpeed(X, 0);
-    setMotorSpeed(Y, 0);
-    xMotorPosistion = 0;
-    yMotorPosistion = 0;
-    resetMotorPositions();
 }
 
 void goToCords(int x, int y)

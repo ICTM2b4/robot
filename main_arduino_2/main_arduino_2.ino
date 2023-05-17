@@ -14,11 +14,14 @@ int receive = 0;
 bool zMotorDirection;
 bool xMotorDirection;
 bool yMotorDirection;
+bool sentStart = false;
 int xMotorPosistion = 0;
 int yMotorPosistion = 0;
 bool requestXMotorPosistion = false;
 int maxXMotorPosistions[] = {0, 4931};
 int maxYMotorPosistions[] = {0, 3000};
+bool isStart = true;
+int startStates;
 void setup()
 {
     Serial.begin(9600);
@@ -78,6 +81,11 @@ void setXMotorPosistion()
  */
 void requestEvents()
 {
+    if(sentStart){
+        Wire.write();
+        sentStart = false;
+        return;
+    }
     if (requestXMotorPosistion)
     {
         Wire.write((byte *)&xMotorPosistion, sizeof(xMotorPosistion));
@@ -114,6 +122,11 @@ void receiveEvents(int numBytes)
         requestXMotorPosistion = true;
     if (receive == 109)
         requestXMotorPosistion = false;
+    if (receive == 110)
+        goToStart();
+    if (receive == 111)
+        sentStart = true;
+    
 }
 
 void resetMotorPositions()
@@ -146,4 +159,40 @@ void setMotorDirection(bool direction)
         return;
     }
     digitalWrite(Z_MOTOR_DIRECTION, HIGH);
+}
+
+void goToStart(){
+     isStart = true;
+    int MillisGoStart = millis();
+    int lastYMotorPosistion = 0;
+    int lastXMotorPosistion = 0;
+    startStates = 3;
+    while (isStart)
+    {
+        if(millis() - MillisGoStart > 500  ){
+            MillisGoStart = millis();
+            if ((yMotorPosistion == lastYMotorPosistion) && (xMotorPosistion == lastXMotorPosistion))
+            {
+                startStates = 0;
+                isStart = false;
+            }
+            else if (yMotorPosistion == lastYMotorPosistion)
+            {
+                startStates = 1;
+            }
+            else if (xMotorPosistion == lastXMotorPosistion)
+            {
+                startStates = 2;
+            }
+            else
+            {
+                startStates = 3;
+            }
+            
+            lastYMotorPosistion = yMotorPosistion;
+            lastXMotorPosistion = xMotorPosistion;
+
+        }
+    }
+    
 }
