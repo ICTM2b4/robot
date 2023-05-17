@@ -77,46 +77,50 @@ void printPosition()
  */
 void goToStart()
 {
+    Serial.println("start");
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
     Wire.write(110);
     Wire.endTransmission();
+    Serial.println("start2");
     bool isStart = true;
     long MillisGoStart = millis();
-            setMotorDirection(X, true);
-            setMotorSpeed(X, 255);
-            setMotorDirection(Y, true);
-            setMotorSpeed(Y, 255);
-    while (isStart)
+    Serial.println("start3");
+    setMotorDirection(X, true);
+    setMotorSpeed(X, 255);
+    setMotorDirection(Y, true);
+    setMotorSpeed(Y, 255);
+    Serial.println("start4");
+    while (isStart == true)
     {
+        Serial.println("while");
 
-        if (millis() - MillisGoStart < 500)
+        if (millis() - MillisGoStart > 1000)
         {
+            Serial.println("gfd");
             Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
             Wire.write(111);
             Wire.endTransmission();
             Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
             int receivedValue = Wire.read();
+            Serial.println(receivedValue);
+
             MillisGoStart = millis();
-            if(receivedValue == 0){
+            if (receivedValue == 1)
+            {
                 setMotorSpeed(X, 0);
                 setMotorSpeed(Y, 0);
                 xMotorPosistion = 0;
                 yMotorPosistion = 0;
                 resetMotorPositions();
                 isStart = false;
-                }
-            else if(receivedValue == 3){
-            setMotorDirection(X, true);
-            setMotorSpeed(X, 255);
-            setMotorDirection(Y, true);
-            setMotorSpeed(Y, 255);
             }
-            else if(receivedValue == 2){
-            setMotorSpeed(X, 0);
-        }
-             else if(receivedValue == 1){
-            setMotorSpeed(Y, 0);
-        }
+            else if (receivedValue == 0)
+            {
+                setMotorDirection(X, true);
+                setMotorSpeed(X, 255);
+                setMotorDirection(Y, true);
+                setMotorSpeed(Y, 255);
+            }
         }
     }
 }

@@ -21,7 +21,10 @@ bool requestXMotorPosistion = false;
 int maxXMotorPosistions[] = {0, 4931};
 int maxYMotorPosistions[] = {0, 3000};
 bool isStart = true;
-int startStates;
+int MillisGoStart;
+int lastYMotorPosistion = 0;
+int lastXMotorPosistion = 0;
+int startStates = 0;
 void setup()
 {
     Serial.begin(9600);
@@ -42,6 +45,10 @@ void setup()
 
 void loop()
 {
+    if (isStart)
+    {
+        startLoop();
+    }
     fixMotorPositions();
     Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
 }
@@ -81,7 +88,8 @@ void setXMotorPosistion()
  */
 void requestEvents()
 {
-    if(sentStart){
+    if (sentStart)
+    {
         Wire.write(startStates);
         sentStart = false;
         return;
@@ -126,7 +134,6 @@ void receiveEvents(int numBytes)
         goToStart();
     if (receive == 111)
         sentStart = true;
-    
 }
 
 void resetMotorPositions()
@@ -160,39 +167,35 @@ void setMotorDirection(bool direction)
     }
     digitalWrite(Z_MOTOR_DIRECTION, HIGH);
 }
+/*
+go to start position
+*/
+void goToStart()
+{
+    isStart = true;
+    MillisGoStart = millis();
 
-void goToStart(){
-     isStart = true;
-    int MillisGoStart = millis();
-    int lastYMotorPosistion = 0;
-    int lastXMotorPosistion = 0;
-    startStates = 3;
-    while (isStart)
+    startStates = 0;
+}
+/*
+loops the start function    
+*/
+void startLoop()
+{
+    if (millis() - MillisGoStart > 1000)
     {
-        if(millis() - MillisGoStart > 500  ){
-            MillisGoStart = millis();
-            if ((yMotorPosistion == lastYMotorPosistion) && (xMotorPosistion == lastXMotorPosistion))
-            {
-                startStates = 0;
-                isStart = false;
-            }
-            else if (yMotorPosistion == lastYMotorPosistion)
-            {
-                startStates = 1;
-            }
-            else if (xMotorPosistion == lastXMotorPosistion)
-            {
-                startStates = 2;
-            }
-            else
-            {
-                startStates = 3;
-            }
-            
-            lastYMotorPosistion = yMotorPosistion;
-            lastXMotorPosistion = xMotorPosistion;
-
+        MillisGoStart = millis();
+        if ((yMotorPosistion == lastYMotorPosistion) && (xMotorPosistion == lastXMotorPosistion))
+        {
+            startStates = 1;
+            isStart = false;
         }
+        else
+        {
+            startStates = 0;
+        }
+
+        lastYMotorPosistion = yMotorPosistion;
+        lastXMotorPosistion = xMotorPosistion;
     }
-    
 }
