@@ -206,11 +206,28 @@ void checkMessages()
         goToStart();
     if (message.startsWith("goToCords(") && message.endsWith(")"))
         goToCords(getCordFromMessage(X, message), getCordFromMessage(Y, message));
+    if (message.startsWith("goToPosition(") && message.endsWith(")"))
+        goToPosition(getPositionFromMessage(X, message), getPositionFromMessage(Y, message));
+}
+/**
+ * this function sends the robot to a position in the warehouse
+ * @param row the row of the warehouse
+ * @param column the column of the warehouse
+*/
+void goToPosition(int row, int column)
+{
+    goToCords(xLocations[column], yLocations[row]);
 }
 
-int getCordFromMessage(axis target, String message)
+/**
+ * this function extracts the position from a message
+ * @param target X or Y
+ * @param message the message
+ * @return the position
+*/
+int getPositionFromMessage(axis target, String message)
 {
-    message.remove(0, 10); // Remove "goToCords(" from the beginning of the string
+    message.remove(0, 13);
     message.remove(message.length() - 1);
 
     int commaIndex = message.indexOf(',');
@@ -219,12 +236,41 @@ int getCordFromMessage(axis target, String message)
     {
         if (target == X)
         {
-            String xString = message.substring(0, commaIndex); // Extract the substring before the comma
+            String xString = message.substring(0, commaIndex);
             return xString.toInt();
         }
         if (target == Y)
         {
-            String yString = message.substring(commaIndex + 1); // Extract the substring after the comma
+            String yString = message.substring(commaIndex + 1);
+            return yString.toInt();
+        }
+    }
+    return 0;
+}
+
+/**
+ * this function extracts the cords from a message
+ * @param target X or Y
+ * @param message the message
+ * @return the cords
+*/
+int getCordFromMessage(axis target, String message)
+{
+    message.remove(0, 10);
+    message.remove(message.length() - 1);
+
+    int commaIndex = message.indexOf(',');
+
+    if (commaIndex != -1)
+    {
+        if (target == X)
+        {
+            String xString = message.substring(0, commaIndex);
+            return xString.toInt();
+        }
+        if (target == Y)
+        {
+            String yString = message.substring(commaIndex + 1);
             return yString.toInt();
         }
     }
