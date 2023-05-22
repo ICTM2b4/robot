@@ -45,9 +45,7 @@ void setup()
 
 void loop()
 {
-    
-        startLoop();
-    
+    startLoop();
     fixMotorPositions();
     Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
 }
@@ -177,27 +175,27 @@ void goToStart()
     startStates = 0;
 }
 /*
-loops the start function to check if the motors are not moving   
+loops the start function to check if the motors are not moving
 */
 void startLoop()
 {
-     if (isStart)
-     {
-    if (millis() - MillisGoStart > 1000)
+    if (isStart)
     {
-        MillisGoStart = millis();
-        if ((yMotorPosistion == lastYMotorPosistion) && (xMotorPosistion == lastXMotorPosistion))
+        if (millis() - MillisGoStart > 1000)
         {
-            startStates = 1;
-            isStart = false;
-        }
-        else
-        {
-            startStates = 0;
-        }
+            MillisGoStart = millis();
+            if ((yMotorPosistion == lastYMotorPosistion) && (xMotorPosistion == lastXMotorPosistion))
+            {
+                startStates = 1;
+                isStart = false;
+            }
+            else
+            {
+                startStates = 0;
+            }
 
-        lastYMotorPosistion = yMotorPosistion;
-        lastXMotorPosistion = xMotorPosistion;
+            lastYMotorPosistion = yMotorPosistion;
+            lastXMotorPosistion = xMotorPosistion;
+        }
     }
-     }
 }
