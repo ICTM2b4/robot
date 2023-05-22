@@ -45,10 +45,9 @@ void setup()
 
 void loop()
 {
-    if (isStart)
-    {
+    
         startLoop();
-    }
+    
     fixMotorPositions();
     Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
 }
@@ -178,10 +177,12 @@ void goToStart()
     startStates = 0;
 }
 /*
-loops the start function    
+loops the start function to check if the motors are not moving   
 */
 void startLoop()
 {
+     if (isStart)
+     {
     if (millis() - MillisGoStart > 1000)
     {
         MillisGoStart = millis();
@@ -198,4 +199,5 @@ void startLoop()
         lastYMotorPosistion = yMotorPosistion;
         lastXMotorPosistion = xMotorPosistion;
     }
+     }
 }
