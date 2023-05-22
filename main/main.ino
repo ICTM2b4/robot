@@ -77,23 +77,17 @@ void printPosition()
  */
 void goToStart()
 {
-    Serial.println("start");
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
     Wire.write(110);
     Wire.endTransmission();
-    Serial.println("start2");
     bool isStart = true;
     long MillisGoStart = millis();
-    Serial.println("start3");
     setMotorDirection(X, true);
     setMotorSpeed(X, 255);
     setMotorDirection(Y, true);
     setMotorSpeed(Y, 255);
-    Serial.println("start4");
     while (isStart == true)
     {
-        Serial.println("while");
-
         if (millis() - MillisGoStart > 1000)
         {
             Serial.println("gfd");
