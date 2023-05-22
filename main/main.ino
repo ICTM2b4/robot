@@ -78,19 +78,44 @@ void printPosition()
  */
 void goToStart()
 {
-    long startTime = millis();
-    while (millis() - startTime < 15000)
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(110);
+    Wire.endTransmission();
+    bool isStart = true;
+    long MillisGoStart = millis();
+    setMotorDirection(X, true);
+    setMotorSpeed(X, 255);
+    setMotorDirection(Y, true);
+    setMotorSpeed(Y, 255);
+    while (isStart == true)
     {
-        setMotorDirection(X, true);
-        setMotorSpeed(X, 255);
-        setMotorDirection(Y, true);
-        setMotorSpeed(Y, 255);
+        if (millis() - MillisGoStart > 1000)
+        {
+            Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+            Wire.write(111);
+            Wire.endTransmission();
+            Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
+            int receivedValue = Wire.read();
+
+            MillisGoStart = millis();
+            if (receivedValue == 1)
+            {
+                setMotorSpeed(X, 0);
+                setMotorSpeed(Y, 0);
+                xMotorPosistion = 0;
+                yMotorPosistion = 0;
+                resetMotorPositions();
+                isStart = false;
+            }
+            else if (receivedValue == 0)
+            {
+                setMotorDirection(X, true);
+                setMotorSpeed(X, 255);
+                setMotorDirection(Y, true);
+                setMotorSpeed(Y, 255);
+            }
+        }
     }
-    setMotorSpeed(X, 0);
-    setMotorSpeed(Y, 0);
-    xMotorPosistion = 0;
-    yMotorPosistion = 0;
-    resetMotorPositions();
 }
 /**
  * this function sends the robot to a position in the warehouse, this is done based on the cords

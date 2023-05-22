@@ -14,11 +14,17 @@ int receive = 0;
 bool zMotorDirection;
 bool xMotorDirection;
 bool yMotorDirection;
+bool sentStart = false;
 int xMotorPosistion = 0;
 int yMotorPosistion = 0;
 bool requestXMotorPosistion = false;
 int maxXMotorPosistions[] = {0, 4931};
 int maxYMotorPosistions[] = {0, 3000};
+bool isStart = true;
+int MillisGoStart;
+int lastYMotorPosistion = 0;
+int lastXMotorPosistion = 0;
+int startStates = 0;
 void setup()
 {
     Serial.begin(9600);
@@ -39,6 +45,9 @@ void setup()
 
 void loop()
 {
+    
+        startLoop();
+    
     fixMotorPositions();
     Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
 }
@@ -78,6 +87,12 @@ void setXMotorPosistion()
  */
 void requestEvents()
 {
+    if (sentStart)
+    {
+        Wire.write(startStates);
+        sentStart = false;
+        return;
+    }
     if (requestXMotorPosistion)
     {
         Wire.write((byte *)&xMotorPosistion, sizeof(xMotorPosistion));
@@ -114,6 +129,10 @@ void receiveEvents(int numBytes)
         requestXMotorPosistion = true;
     if (receive == 109)
         requestXMotorPosistion = false;
+    if (receive == 110)
+        goToStart();
+    if (receive == 111)
+        sentStart = true;
 }
 
 void resetMotorPositions()
@@ -146,4 +165,39 @@ void setMotorDirection(bool direction)
         return;
     }
     digitalWrite(Z_MOTOR_DIRECTION, HIGH);
+}
+/*
+go to start position
+*/
+void goToStart()
+{
+    isStart = true;
+    MillisGoStart = millis();
+
+    startStates = 0;
+}
+/*
+loops the start function to check if the motors are not moving   
+*/
+void startLoop()
+{
+     if (isStart)
+     {
+    if (millis() - MillisGoStart > 1000)
+    {
+        MillisGoStart = millis();
+        if ((yMotorPosistion == lastYMotorPosistion) && (xMotorPosistion == lastXMotorPosistion))
+        {
+            startStates = 1;
+            isStart = false;
+        }
+        else
+        {
+            startStates = 0;
+        }
+
+        lastYMotorPosistion = yMotorPosistion;
+        lastXMotorPosistion = xMotorPosistion;
+    }
+     }
 }
