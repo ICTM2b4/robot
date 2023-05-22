@@ -35,8 +35,12 @@ bool allowJoystickControl = true;
 int xMotorPosistion;
 int yMotorPosistion;
 bool yMotorDirection;
+// locations of the warehouse
+int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
+int yLocations[5] = {2317, 1814, 1288, 776, 269};
 // enable debug mode
-bool debug = true;
+bool debug = false;
+
 void setup()
 {
     // setup comunicatie I2C
@@ -55,10 +59,7 @@ void setup()
 void loop()
 {
     if (debug)
-    {
         printPosition();
-    }
-
     checkMessages();
     if (allowJoystickControl)
         checkJoystick();
@@ -90,13 +91,11 @@ void goToStart()
     {
         if (millis() - MillisGoStart > 1000)
         {
-            Serial.println("gfd");
             Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
             Wire.write(111);
             Wire.endTransmission();
             Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
             int receivedValue = Wire.read();
-            Serial.println(receivedValue);
 
             MillisGoStart = millis();
             if (receivedValue == 1)
@@ -118,7 +117,10 @@ void goToStart()
         }
     }
 }
-
+/**
+ * this function sends the robot to a position in the warehouse, this is done based on the cords
+ * @param x the x position
+ */
 void goToCords(int x, int y)
 {
     while (xMotorPosistion != x || yMotorPosistion != y)
@@ -227,51 +229,77 @@ void checkMessages()
     // go to start position
     if (message == "goToStart")
         goToStart();
-    if (message == "goToCords")
-        goToCords(1000, 1000);
-    // manual control
-    if (message == "X+")
+    if (message.startsWith("goToCords(") && message.endsWith(")"))
+        goToCords(getCordFromMessage(X, message), getCordFromMessage(Y, message));
+    if (message.startsWith("goToPosition(") && message.endsWith(")"))
+        goToPosition(getPositionFromMessage(X, message), getPositionFromMessage(Y, message));
+}
+/**
+ * this function sends the robot to a position in the warehouse
+ * @param row the row of the warehouse
+ * @param column the column of the warehouse
+ */
+void goToPosition(int row, int column)
+{
+    goToCords(xLocations[column - 1], yLocations[row - 1]);
+}
+
+/**
+ * this function extracts the position from a message
+ * @param target X or Y
+ * @param message the message
+ * @return the position
+ */
+int getPositionFromMessage(axis target, String message)
+{
+    message.remove(0, 13);
+    message.remove(message.length() - 1);
+
+    int commaIndex = message.indexOf(',');
+
+    if (commaIndex != -1)
     {
-        setMotorDirection(X, true);
-        setMotorSpeed(X, 255);
+        if (target == X)
+        {
+            String xString = message.substring(0, commaIndex);
+            return xString.toInt();
+        }
+        if (target == Y)
+        {
+            String yString = message.substring(commaIndex + 1);
+            return yString.toInt();
+        }
     }
-    else if (message == "X-")
+    return 0;
+}
+
+/**
+ * this function extracts the cords from a message
+ * @param target X or Y
+ * @param message the message
+ * @return the cords
+ */
+int getCordFromMessage(axis target, String message)
+{
+    message.remove(0, 10);
+    message.remove(message.length() - 1);
+
+    int commaIndex = message.indexOf(',');
+
+    if (commaIndex != -1)
     {
-        setMotorDirection(X, false);
-        setMotorSpeed(X, 255);
+        if (target == X)
+        {
+            String xString = message.substring(0, commaIndex);
+            return xString.toInt();
+        }
+        if (target == Y)
+        {
+            String yString = message.substring(commaIndex + 1);
+            return yString.toInt();
+        }
     }
-    else if (message == "Y+")
-    {
-        setMotorDirection(Y, true);
-        setMotorSpeed(Y, 255);
-    }
-    else if (message == "Y-")
-    {
-        setMotorDirection(Y, false);
-        setMotorSpeed(Y, 255);
-    }
-    else if (message == "Z+")
-    {
-        setMotorDirection(Z, false);
-        setMotorSpeed(Z, 255);
-    }
-    else if (message == "Z-")
-    {
-        setMotorDirection(Z, true);
-        setMotorSpeed(Z, 255);
-    }
-    else if (message == "X0")
-    {
-        setMotorSpeed(X, 0);
-    }
-    else if (message == "Y0")
-    {
-        setMotorSpeed(Y, 0);
-    }
-    else if (message == "Z0")
-    {
-        setMotorSpeed(Z, 0);
-    }
+    return 0;
 }
 /**
  * this function checks the joystick values and sets the targeted axis's motor speed and direction
