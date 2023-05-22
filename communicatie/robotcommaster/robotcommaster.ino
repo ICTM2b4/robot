@@ -37,10 +37,26 @@ void sentData(){
 
 void loop()
 {
-  delay(500);
-  sentData();
-delay(500);
-readData();
-
+//   delay(500);
+//   sentData();
+// delay(500);
+// readData();
+  int valueToSend = 5000;
+  
+  // Send the value to the slave Arduino
+  Wire.beginTransmission(8);  // Address of the slave Arduino
+  Wire.write((byte*)&valueToSend, sizeof(valueToSend));
+  Wire.endTransmission();
+  
+  delay(500);  // Wait for the slave Arduino to process the data
+  
+  // Request the value back from the slave Arduino
+  Wire.requestFrom(8, sizeof(valueToSend));
+  int receivedValue = 0;
+  Wire.readBytes((byte*)&receivedValue, sizeof(receivedValue));
+  
+  Serial.println(receivedValue);  // Print the received value
+  
+  delay(1000);
  
 }

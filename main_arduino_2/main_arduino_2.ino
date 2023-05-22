@@ -5,19 +5,36 @@
 
 int sent = 0;
 int receive = 0;
-bool direction = false;
-int Zspeed = 0;
 
 // setup the motors
-#define Z_MOTOR_DIRECTION 12
-#define Z_MOTOR_SPEED 3
-
+#define Z_MOTOR_DIRECTION 13
+#define Z_MOTOR_SPEED 11
+#define X_MOTOR_POSITION_PIN 3
+#define Y_MOTOR_POSITION_PIN 2
+bool zMotorDirection;
+bool xMotorDirection;
+bool yMotorDirection;
+bool sentStart = false;
+int xMotorPosistion = 0;
+int yMotorPosistion = 0;
+bool requestXMotorPosistion = false;
+int maxXMotorPosistions[] = {0, 4931};
+int maxYMotorPosistions[] = {0, 3000};
+bool isStart = true;
+int MillisGoStart;
+int lastYMotorPosistion = 0;
+int lastXMotorPosistion = 0;
+int startStates = 0;
 void setup()
 {
     Serial.begin(9600);
     // setup motor
     pinMode(Z_MOTOR_DIRECTION, OUTPUT);
     pinMode(Z_MOTOR_SPEED, OUTPUT);
+    pinMode(Y_MOTOR_POSITION_PIN, INPUT_PULLUP);
+    // setup interrupt for motor position sensors (X and Z axis)
+    attachInterrupt(digitalPinToInterrupt(Y_MOTOR_POSITION_PIN), setYMotorPosistion, RISING);
+    attachInterrupt(digitalPinToInterrupt(X_MOTOR_POSITION_PIN), setXMotorPosistion, RISING);
     // setup comunicatie I2C
     Wire.begin(I2C_SLAVE_ADDRESS);
     Serial.begin(9600);
@@ -28,35 +45,39 @@ void setup()
 
 void loop()
 {
-    checkMessages();
+    startLoop();
+    fixMotorPositions();
+    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
 }
 
 /**
- *  check if there is a message in the serial buffer
- *  if there is a message, read it and execute the related command
+ * fix the motor positions if they are out of bounds
  */
-void checkMessages()
+void fixMotorPositions()
 {
-    if (Serial.available() <= 0)
-        return;
-    String ontvangen = Serial.readString();
-    Serial.println(ontvangen);
-
-    if (ontvangen == "Z+")
-    {
-        setMotorDirection(true);
-        setMotorSpeed(255);
-    }
-    else if (ontvangen == "Z-")
-    {
-        setMotorDirection(false);
-        setMotorSpeed(255);
-    }
-
-    else if (ontvangen == "Z0")
-    {
-        setMotorSpeed(0);
-    }
+    if (xMotorPosistion < maxXMotorPosistions[0])
+        xMotorPosistion = 0;
+    if (xMotorPosistion > maxXMotorPosistions[1])
+        xMotorPosistion = maxXMotorPosistions[1];
+    if (yMotorPosistion < maxYMotorPosistions[0])
+        yMotorPosistion = 0;
+    if (yMotorPosistion > maxYMotorPosistions[1])
+        yMotorPosistion = maxYMotorPosistions[1];
+}
+/**
+ *  Check the position of the motor and update the zMotorPosistion variable
+ *  keep the zMotorPosistion variable between 0 and 920 for accuracy
+ */
+void setYMotorPosistion()
+{
+    yMotorPosistion = yMotorDirection ? yMotorPosistion - 1 : yMotorPosistion + 1;
+}
+/**
+ * Check the position of the motor and send it to the main arduino
+ */
+void setXMotorPosistion()
+{
+    xMotorPosistion = xMotorDirection ? xMotorPosistion - 1 : xMotorPosistion + 1;
 }
 
 /**
@@ -64,7 +85,20 @@ void checkMessages()
  */
 void requestEvents()
 {
-    Wire.write(sent);
+    if (sentStart)
+    {
+        Wire.write(startStates);
+        sentStart = false;
+        return;
+    }
+    if (requestXMotorPosistion)
+    {
+        Wire.write((byte *)&xMotorPosistion, sizeof(xMotorPosistion));
+    }
+    if (!requestXMotorPosistion)
+    {
+        Wire.write((byte *)&yMotorPosistion, sizeof(yMotorPosistion));
+    }
 }
 
 /**
@@ -73,15 +107,36 @@ void requestEvents()
 void receiveEvents(int numBytes)
 {
     receive = Wire.read();
-    Serial.println(receive);
-    if (receive == 1)
+    if (receive == 101)
         setMotorDirection(true);
-    if (receive == 2)
+    if (receive == 102)
         setMotorDirection(false);
-    if (receive == 3)
-        setMotorSpeed(0);
-    if (receive >= 4)
+    if (receive >= 0 && receive <= 100)
         setMotorSpeed(receive);
+    if (receive == 103)
+        xMotorDirection = true;
+    if (receive == 104)
+        xMotorDirection = false;
+    if (receive == 105)
+        yMotorDirection = true;
+    if (receive == 106)
+        yMotorDirection = false;
+    if (receive == 107)
+        resetMotorPositions();
+    if (receive == 108)
+        requestXMotorPosistion = true;
+    if (receive == 109)
+        requestXMotorPosistion = false;
+    if (receive == 110)
+        goToStart();
+    if (receive == 111)
+        sentStart = true;
+}
+
+void resetMotorPositions()
+{
+    xMotorPosistion = 0;
+    yMotorPosistion = 0;
 }
 
 /**
@@ -90,6 +145,8 @@ void receiveEvents(int numBytes)
  */
 void setMotorSpeed(int speed)
 {
+    if (speed > 100)
+        speed = 100;
     analogWrite(Z_MOTOR_SPEED, speed);
 }
 
@@ -99,10 +156,46 @@ void setMotorSpeed(int speed)
  */
 void setMotorDirection(bool direction)
 {
+    zMotorDirection = direction;
     if (direction)
     {
         digitalWrite(Z_MOTOR_DIRECTION, LOW);
         return;
     }
     digitalWrite(Z_MOTOR_DIRECTION, HIGH);
+}
+/*
+go to start position
+*/
+void goToStart()
+{
+    isStart = true;
+    MillisGoStart = millis();
+
+    startStates = 0;
+}
+/*
+loops the start function to check if the motors are not moving
+*/
+void startLoop()
+{
+    if (isStart)
+    {
+        if (millis() - MillisGoStart > 1000)
+        {
+            MillisGoStart = millis();
+            if ((yMotorPosistion == lastYMotorPosistion) && (xMotorPosistion == lastXMotorPosistion))
+            {
+                startStates = 1;
+                isStart = false;
+            }
+            else
+            {
+                startStates = 0;
+            }
+
+            lastYMotorPosistion = yMotorPosistion;
+            lastXMotorPosistion = xMotorPosistion;
+        }
+    }
 }

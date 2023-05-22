@@ -2,7 +2,7 @@
 
 // define en include voor commmunicatie
 #include <Wire.h>
-#define I2C_SLAVE1_ADDRESS 11 // slava adress
+#define I2C_SLAVE1_ADDRESS 11 // slave adress
 #define PAYLOAD_SIZE 2
 
 // setup the motors
@@ -20,7 +20,7 @@ enum axis
 // setup the joystick pins
 #define JOYSTICK_X_PIN A2
 #define JOYSTICK_Y_PIN A3
-#define JOYSTICK_BUTTON_PIN 2
+#define JOYSTICK_BUTTON_PIN 4
 // setup the joystick with the ezButton library
 ezButton joystickButton(JOYSTICK_BUTTON_PIN);
 // setup the joystick values
@@ -31,12 +31,20 @@ int joystickButtonValue = 0;
 bool joystickZAxis = false;
 // toggle between joystick and serial control
 bool allowJoystickControl = true;
+// motor positions
+int xMotorPosistion;
+int yMotorPosistion;
+bool yMotorDirection;
+// locations of the warehouse
+int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
+int yLocations[5] = {2317, 1814, 1288, 776, 269};
+// enable debug mode
+bool debug = false;
 
 void setup()
 {
     // setup comunicatie I2C
     Wire.begin();
-
     Serial.begin(9600);
     // setup motor
     pinMode(X_MOTOR_DIRECTION, OUTPUT);
@@ -45,14 +53,149 @@ void setup()
     pinMode(Y_MOTOR_SPEED, OUTPUT);
     // setup the joystick
     joystickButton.setDebounceTime(50);
+    // goToStart();
 }
 
 void loop()
 {
+    if (debug)
+        printPosition();
     checkMessages();
     if (allowJoystickControl)
         checkJoystick();
+    getMotorPositions();
 }
+
+/**
+ * print the current position of the robot in the serial monitor
+ */
+void printPosition()
+{
+    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
+}
+/**
+ * this function sends the robots arm to the start position
+ */
+void goToStart()
+{
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(110);
+    Wire.endTransmission();
+    bool isStart = true;
+    long MillisGoStart = millis();
+    setMotorDirection(X, true);
+    setMotorSpeed(X, 255);
+    setMotorDirection(Y, true);
+    setMotorSpeed(Y, 255);
+    while (isStart == true)
+    {
+        if (millis() - MillisGoStart > 1000)
+        {
+            Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+            Wire.write(111);
+            Wire.endTransmission();
+            Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
+            int receivedValue = Wire.read();
+
+            MillisGoStart = millis();
+            if (receivedValue == 1)
+            {
+                setMotorSpeed(X, 0);
+                setMotorSpeed(Y, 0);
+                xMotorPosistion = 0;
+                yMotorPosistion = 0;
+                resetMotorPositions();
+                isStart = false;
+            }
+            else if (receivedValue == 0)
+            {
+                setMotorDirection(X, true);
+                setMotorSpeed(X, 255);
+                setMotorDirection(Y, true);
+                setMotorSpeed(Y, 255);
+            }
+        }
+    }
+}
+/**
+ * this function sends the robot to a position in the warehouse, this is done based on the cords
+ * @param x the x position
+ */
+void goToCords(int x, int y)
+{
+    while (xMotorPosistion != x || yMotorPosistion != y)
+    {
+        if (xMotorPosistion < x)
+        {
+            setMotorDirection(X, false);
+            setMotorSpeed(X, 255);
+        }
+        else if (xMotorPosistion > x)
+        {
+            setMotorDirection(X, true);
+            setMotorSpeed(X, 255);
+        }
+        else
+        {
+            setMotorSpeed(X, 0);
+        }
+
+        if (yMotorPosistion < y)
+        {
+            setMotorDirection(Y, false);
+            setMotorSpeed(Y, 255);
+        }
+        else if (yMotorPosistion > y)
+        {
+            setMotorDirection(Y, true);
+            setMotorSpeed(Y, 255);
+        }
+        else
+        {
+            setMotorSpeed(Y, 0);
+        }
+        getMotorPositions();
+    }
+}
+
+/**
+ * this function resets the motor positions on both arduinos
+ */
+void resetMotorPositions()
+{
+    xMotorPosistion = 0;
+    yMotorPosistion = 0;
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(107);
+    Wire.endTransmission();
+}
+/**
+ *This function gets the motor positions from the second arduino
+ */
+void getMotorPositions()
+{
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(108);
+    Wire.endTransmission();
+
+    Wire.requestFrom(I2C_SLAVE1_ADDRESS, sizeof(5000));
+    int receivedXValue = 0;
+    Wire.readBytes((byte *)&receivedXValue, sizeof(receivedXValue));
+    Wire.endTransmission();
+
+    xMotorPosistion = receivedXValue;
+
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(109);
+    Wire.endTransmission();
+
+    Wire.requestFrom(I2C_SLAVE1_ADDRESS, sizeof(5000));
+    int receivedYValue = 0;
+    Wire.readBytes((byte *)&receivedYValue, sizeof(receivedYValue));
+    yMotorPosistion = receivedYValue;
+    Wire.endTransmission();
+}
+
 /**
  * this function sends data to the HMI application
  */
@@ -83,49 +226,80 @@ void checkMessages()
         allowJoystickControl = false;
     if (message == "disableControlFromHMI")
         allowJoystickControl = true;
-    // manual control
-    if (message == "X+")
+    // go to start position
+    if (message == "goToStart")
+        goToStart();
+    if (message.startsWith("goToCords(") && message.endsWith(")"))
+        goToCords(getCordFromMessage(X, message), getCordFromMessage(Y, message));
+    if (message.startsWith("goToPosition(") && message.endsWith(")"))
+        goToPosition(getPositionFromMessage(X, message), getPositionFromMessage(Y, message));
+}
+/**
+ * this function sends the robot to a position in the warehouse
+ * @param row the row of the warehouse
+ * @param column the column of the warehouse
+ */
+void goToPosition(int row, int column)
+{
+    goToCords(xLocations[column - 1], yLocations[row - 1]);
+}
+
+/**
+ * this function extracts the position from a message
+ * @param target X or Y
+ * @param message the message
+ * @return the position
+ */
+int getPositionFromMessage(axis target, String message)
+{
+    message.remove(0, 13);
+    message.remove(message.length() - 1);
+
+    int commaIndex = message.indexOf(',');
+
+    if (commaIndex != -1)
     {
-        setMotorDirection(X, true);
-        setMotorSpeed(X, 255);
+        if (target == X)
+        {
+            String xString = message.substring(0, commaIndex);
+            return xString.toInt();
+        }
+        if (target == Y)
+        {
+            String yString = message.substring(commaIndex + 1);
+            return yString.toInt();
+        }
     }
-    else if (message == "X-")
+    return 0;
+}
+
+/**
+ * this function extracts the cords from a message
+ * @param target X or Y
+ * @param message the message
+ * @return the cords
+ */
+int getCordFromMessage(axis target, String message)
+{
+    message.remove(0, 10);
+    message.remove(message.length() - 1);
+
+    int commaIndex = message.indexOf(',');
+
+    if (commaIndex != -1)
     {
-        setMotorDirection(X, false);
-        setMotorSpeed(X, 255);
+        if (target == X)
+        {
+            String xString = message.substring(0, commaIndex);
+            return xString.toInt();
+        }
+        if (target == Y)
+        {
+            String yString = message.substring(commaIndex + 1);
+            return yString.toInt();
+        }
     }
-    else if (message == "Y+")
-    {
-        setMotorDirection(Y, true);
-        setMotorSpeed(Y, 255);
-    }
-    else if (message == "Y-")
-    {
-        setMotorDirection(Y, false);
-        setMotorSpeed(Y, 255);
-    }
-    else if (message == "Z+")
-    {
-        setMotorDirection(Z, false);
-        setMotorSpeed(Z, 255);
-    }
-    else if (message == "Z-")
-    {
-        setMotorDirection(Z, true);
-        setMotorSpeed(Z, 255);
-    }
-    else if (message == "X0")
-    {
-        setMotorSpeed(X, 0);
-    }
-    else if (message == "Y0")
-    {
-        setMotorSpeed(Y, 0);
-    }
-    else if (message == "Z0")
-    {
-        setMotorSpeed(Z, 0);
-    }
+    return 0;
 }
 /**
  * this function checks the joystick values and sets the targeted axis's motor speed and direction
@@ -240,13 +414,16 @@ void setMotorSpeed(axis axis, int speed)
     switch (axis)
     {
     case X:
-        analogWrite(X_MOTOR_SPEED, speed);
+        analogWrite(X_MOTOR_SPEED, (speed > 200) ? 200 : speed);
         break;
     case Y:
-        analogWrite(Y_MOTOR_SPEED, speed);
+        if (yMotorDirection)
+            analogWrite(Y_MOTOR_SPEED, (speed > 150) ? 150 : speed);
+        else
+            analogWrite(Y_MOTOR_SPEED, (speed > 200) ? 200 : speed);
         break;
     case Z:
-        sentSpeedData((speed > 3) ? speed : 3);
+        sentSpeedData((speed > 100) ? 100 : speed);
         break;
     default:
         break;
@@ -265,12 +442,15 @@ void setMotorDirection(axis axis, bool direction)
     {
     case X:
         target = X_MOTOR_DIRECTION;
+        sentDirectionData(X, direction);
         break;
     case Y:
         target = Y_MOTOR_DIRECTION;
+        yMotorDirection = direction;
+        sentDirectionData(Y, direction);
         break;
     case Z:
-        sentDirectionData(direction);
+        sentDirectionData(Z, direction);
         return;
         break;
     default:
@@ -286,17 +466,23 @@ void setMotorDirection(axis axis, bool direction)
 }
 /**
  * sent direction to second arduino
+ * @param target X, Y or Z
  * @param direction true = forward, false = backward
  */
-void sentDirectionData(bool direction)
+void sentDirectionData(axis target, bool direction)
 {
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
-    Wire.write(direction ? 2 : 1);
+    if (target == X)
+        Wire.write(direction ? 103 : 104);
+    if (target == Y)
+        Wire.write(direction ? 105 : 106);
+    if (target == Z)
+        Wire.write(direction ? 102 : 101);
     Wire.endTransmission();
 }
 /**
- * sent speed to second arduino
- * @param speed 3 - 255 | 2 to stop
+ * sent speed to second arduino for the Z axis
+ * @param speed 0 - 100
  */
 void sentSpeedData(int speed)
 {
