@@ -39,7 +39,8 @@ bool yMotorDirection;
 int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
 int yLocations[5] = {2317, 1814, 1288, 776, 269};
 // enable debug mode
-bool debug = true;
+bool debug = false;
+
 void setup()
 {
     // setup comunicatie I2C
@@ -58,10 +59,7 @@ void setup()
 void loop()
 {
     if (debug)
-    {
         printPosition();
-    }
-
     checkMessages();
     if (allowJoystickControl)
         checkJoystick();
@@ -80,7 +78,6 @@ void printPosition()
  */
 void goToStart()
 {
-    // use millis to create a while loop for 20 seconds
     long startTime = millis();
     while (millis() - startTime < 15000)
     {
@@ -95,7 +92,10 @@ void goToStart()
     yMotorPosistion = 0;
     resetMotorPositions();
 }
-
+/**
+ * this function sends the robot to a position in the warehouse, this is done based on the cords
+ * @param x the x position
+ */
 void goToCords(int x, int y)
 {
     while (xMotorPosistion != x || yMotorPosistion != y)
@@ -213,10 +213,10 @@ void checkMessages()
  * this function sends the robot to a position in the warehouse
  * @param row the row of the warehouse
  * @param column the column of the warehouse
-*/
+ */
 void goToPosition(int row, int column)
 {
-    goToCords(xLocations[column], yLocations[row]);
+    goToCords(xLocations[column - 1], yLocations[row - 1]);
 }
 
 /**
@@ -224,7 +224,7 @@ void goToPosition(int row, int column)
  * @param target X or Y
  * @param message the message
  * @return the position
-*/
+ */
 int getPositionFromMessage(axis target, String message)
 {
     message.remove(0, 13);
@@ -253,7 +253,7 @@ int getPositionFromMessage(axis target, String message)
  * @param target X or Y
  * @param message the message
  * @return the cords
-*/
+ */
 int getCordFromMessage(axis target, String message)
 {
     message.remove(0, 10);
