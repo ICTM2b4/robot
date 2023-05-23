@@ -4,7 +4,7 @@
 #include <Wire.h>
 #define I2C_SLAVE1_ADDRESS 11 // slave adress
 #define PAYLOAD_SIZE 2
-// define voor noodstop
+// define  emergencyButton
 const int interruptPin = 2;
 bool emergencyButtonstate = false;
 // setup the motors
@@ -48,7 +48,7 @@ void setup()
     // setup comunicatie I2C
     Wire.begin();
     Serial.begin(9600);
-    // setup noodstop
+    // setup emergencyButton
     pinMode(interruptPin, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(interruptPin), emergencyButton, FALLING);
     // setup motor
@@ -63,18 +63,14 @@ void setup()
 
 void loop()
 {
-
         if(emergencyButtonloop())
         return;
-        
-
         if (debug)
             printPosition();
         checkMessages();
         if (allowJoystickControl)
             checkJoystick();
         getMotorPositions();
-   
 }
 
 /**
@@ -538,5 +534,4 @@ void emergencyButton()
     Serial.println("emergencyButton knop ingedrukt");
     analogWrite(X_MOTOR_SPEED, 0);
     analogWrite(Y_MOTOR_SPEED, 0);
-    // sentSpeedData(0);
 }
