@@ -48,9 +48,9 @@ void setup()
     // setup comunicatie I2C
     Wire.begin();
     Serial.begin(9600);
-    //setup noodstop
-     pinMode(interruptPin, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(interruptPin), emergencyButton, FALLING);
+    // setup noodstop
+    pinMode(interruptPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(interruptPin), emergencyButton, FALLING);
     // setup motor
     pinMode(X_MOTOR_DIRECTION, OUTPUT);
     pinMode(X_MOTOR_SPEED, OUTPUT);
@@ -63,17 +63,18 @@ void setup()
 
 void loop()
 {
-    if(emergencyButtonstate){
-    emergencyButtonloop();
+    if (emergencyButtonstate)
+    {
+        emergencyButtonloop();
     }
-    else{
+    else
+    {
         if (debug)
-        printPosition();
-    checkMessages();
-    if (allowJoystickControl)
-        checkJoystick();
-    getMotorPositions();
-        
+            printPosition();
+        checkMessages();
+        if (allowJoystickControl)
+            checkJoystick();
+        getMotorPositions();
     }
 }
 
@@ -134,7 +135,7 @@ void goToStart()
  */
 void goToCords(int x, int y)
 {
-    while (xMotorPosistion != x || yMotorPosistion != y)
+    while ((xMotorPosistion != x || yMotorPosistion != y) && !emergencyButtonstate)
     {
         if (xMotorPosistion < x)
         {
@@ -504,31 +505,33 @@ void sentSpeedData(int speed)
 
 void emergencyButtonloop()
 {
-String serialInput;
-  if (Serial.available() > 0)
-  {
-    serialInput = Serial.readString();
-  }
-  if (serialInput == "reset")
-  {
-    Serial.println("emergencyButton gereset");
-    emergencyButtonstate = false;
-  }
-analogWrite(X_MOTOR_SPEED, 0);
-analogWrite(Y_MOTOR_SPEED, 0);
-sentSpeedData(0);
-
-
-  Serial.println("emergencyButton actief");
+    String serialInput;
+    if (Serial.available() > 0)
+    {
+        serialInput = Serial.readString();
+    }
+    if (serialInput == "reset")
+    {
+        Serial.println("emergencyButton gereset");
+        emergencyButtonstate = false;
+    }
+    if (digitalRead(JOYSTICK_BUTTON_PIN) == LOW)
+    {
+        Serial.println("emergencyButton gereset");
+        emergencyButtonstate = false;
+    }
+    analogWrite(X_MOTOR_SPEED, 0);
+    analogWrite(Y_MOTOR_SPEED, 0);
+    sentSpeedData(0);
 }
 /**
  * emergencyButton interupt function
  */
 void emergencyButton()
 {
-  emergencyButtonstate = true;
-  Serial.println("emergencyButton knop ingedrukt");
-  analogWrite(X_MOTOR_SPEED, 0);
+    emergencyButtonstate = true;
+    Serial.println("emergencyButton knop ingedrukt");
+    analogWrite(X_MOTOR_SPEED, 0);
     analogWrite(Y_MOTOR_SPEED, 0);
-    //sentSpeedData(0);
+    // sentSpeedData(0);
 }
