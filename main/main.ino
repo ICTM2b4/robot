@@ -40,6 +40,11 @@ bool yMotorDirection;
 // locations of the warehouse
 int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
 int yLocations[5] = {2317, 1814, 1288, 776, 269};
+struct Point
+{
+    int x;
+    int y;
+};
 // enable debug mode
 bool debug = false;
 
@@ -58,19 +63,19 @@ void setup()
     pinMode(Y_MOTOR_SPEED, OUTPUT);
     // setup the joystick
     joystickButton.setDebounceTime(50);
-    // goToStart();
+    goToStart();
 }
 
 void loop()
 {
-        if(emergencyButtonloop())
+    if (emergencyButtonloop())
         return;
-        if (debug)
-            printPosition();
-        checkMessages();
-        if (allowJoystickControl)
-            checkJoystick();
-        getMotorPositions();
+    if (debug)
+        printPosition();
+    checkMessages();
+    if (allowJoystickControl)
+        checkJoystick();
+    getMotorPositions();
 }
 
 /**
@@ -240,7 +245,24 @@ void checkMessages()
         goToCords(getCordFromMessage(X, message), getCordFromMessage(Y, message));
     if (message.startsWith("goToPosition(") && message.endsWith(")"))
         goToPosition(getPositionFromMessage(X, message), getPositionFromMessage(Y, message));
+    if (message.startsWith("collectProducts(") && message.endsWith(")"))
+        collectProducts(convertMessageToPositionsArray(message));
 }
+
+/**
+ * this function converts a message to an array of multiple x an y positions
+ * @param message the message
+ * @return the array of positions
+ */
+int *convertMessageToPositionsArray(String message)
+{
+    
+}
+
+void collectProducts(int *positions)
+{
+}
+
 /**
  * this function sends the robot to a position in the warehouse
  * @param row the row of the warehouse
@@ -502,28 +524,28 @@ bool emergencyButtonloop()
 {
     if (emergencyButtonstate)
     {
-    String serialInput;
-    if (Serial.available() > 0)
-    {
-        serialInput = Serial.readString();
-    }
-    if (serialInput == "reset")
-    {
-        Serial.println("emergencyButton gereset");
-        emergencyButtonstate = false;
-    }
-    if (digitalRead(JOYSTICK_BUTTON_PIN) == LOW)
-    {
-        Serial.println("emergencyButton gereset");
-        emergencyButtonstate = false;
-    }
-    analogWrite(X_MOTOR_SPEED, 0);
-    analogWrite(Y_MOTOR_SPEED, 0);
-    sentSpeedData(0);
-    return true;
+        String serialInput;
+        if (Serial.available() > 0)
+        {
+            serialInput = Serial.readString();
+        }
+        if (serialInput == "reset")
+        {
+            Serial.println("emergencyButton gereset");
+            emergencyButtonstate = false;
+        }
+        if (digitalRead(JOYSTICK_BUTTON_PIN) == LOW)
+        {
+            Serial.println("emergencyButton gereset");
+            emergencyButtonstate = false;
+        }
+        analogWrite(X_MOTOR_SPEED, 0);
+        analogWrite(Y_MOTOR_SPEED, 0);
+        sentSpeedData(0);
+        return true;
     }
     else
-    return false;
+        return false;
 }
 /**
  * emergencyButton interupt function
