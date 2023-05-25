@@ -55,6 +55,9 @@ void loop()
  */
 void fixMotorPositions()
 {
+    if (isStart)
+        return;
+
     if (xMotorPosistion < maxXMotorPosistions[0])
         xMotorPosistion = 0;
     if (xMotorPosistion > maxXMotorPosistions[1])
@@ -170,6 +173,8 @@ go to start position
 void goToStart()
 {
     isStart = true;
+    lastYMotorPosistion = 999999;
+    lastXMotorPosistion = 999999;
     MillisGoStart = millis();
 
     startStates = 0;
