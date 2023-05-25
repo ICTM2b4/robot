@@ -1,29 +1,24 @@
-struct Point
-{
-    int x;
-    int y;
-};
 int amountOfPoints;
-String *convertMessageToPositionsArray(String message)
+String pointsArray[25];
+void convertMessageToPositionsArray(String message)
 {
     amountOfPoints = message.length() / 4 + 1;
-    String pointsArray[amountOfPoints];
+    memset(pointsArray, 0, sizeof(pointsArray));
+    if (amountOfPoints > 25)
+        return;
 
     for (int i = 0; i < amountOfPoints; i++)
     {
         int pointIndex = message.indexOf('.');
         pointsArray[i] = message.substring(0, pointIndex);
         message = message.substring(pointIndex + 1, message.length());
-
-        Serial.println(pointsArray[i]);
-        // Serial.println(pointsArray[i].y);
     }
-
-    return pointsArray;
 }
 
-void collectProducts(String pointsArray[])
+void collectProducts()
 {
+    if (amountOfPoints > 25)
+        return;
     for (int i = 0; i < amountOfPoints; i++)
     {
         Serial.println(pointsArray[i]);
@@ -57,8 +52,7 @@ void checkMessages()
     if (message.startsWith("collectProducts(") && message.endsWith(")"))
     {
         message = message.substring(16, message.length() - 1);
-        Serial.println(message);
-        // convertMessageToPositionsArray(message);
-        collectProducts(convertMessageToPositionsArray(message));
+        convertMessageToPositionsArray(message);
+        collectProducts();
     }
 }
