@@ -61,7 +61,6 @@ void setup()
     pinMode(Y_MOTOR_SPEED, OUTPUT);
     // setup the joystick
     joystickButton.setDebounceTime(50);
-    goToStart();
 }
 
 void loop()
@@ -281,12 +280,19 @@ void collectProducts()
 {
     if (amountOfPoints > 25)
         return;
+    goToStart();
     for (int i = 0; i < amountOfPoints; i++)
     {
+        Serial.println("going to: " + pointsArray[i]);
         goToPosition(getPositionFromMessage(Y, pointsArray[i]), getPositionFromMessage(X, pointsArray[i]));
         delay(1000); // hier de oppak functie
-        Serial.println(pointsArray[i]);
+        if ((i + 1) % 3 == 0)
+        {
+            goToStart();
+            delay(1000);
+        }
     }
+    goToStart();
 }
 
 /**
