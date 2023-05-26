@@ -129,6 +129,7 @@ void goToStart()
 /**
  * this function sends the robot to a position in the warehouse, this is done based on the cords
  * @param x the x position
+ * @param y the y position
  */
 void goToCords(int x, int y)
 {
@@ -167,6 +168,51 @@ void goToCords(int x, int y)
     }
     setMotorSpeed(X, 0);
     setMotorSpeed(Y, 0);
+}
+
+void pickupProduct(int productNumber)
+{
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    switch (productNumber)
+    {
+    case 1:
+        Wire.write(112);
+        break;
+    case 2:
+        Wire.write(113);
+        break;
+    case 3:
+        Wire.write(114);
+        break;
+    default:
+        break;
+    }
+    Wire.endTransmission();
+
+    while (true)
+    {
+        Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
+        int receivedValue = Wire.read();
+        if (receivedValue == 1)
+            break;
+    }
+
+    getMotorPositions();
+    goToCords(xMotorPosistion, yMotorPosistion + 150);
+    Serial.println("Y reached");
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(115);
+    Wire.endTransmission();
+
+    while (true)
+    {
+        Serial.println("wait till arm reached first position");
+        Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
+        int receivedValue = Wire.read();
+        if (receivedValue == 0)
+            break;
+    }
+    Serial.println("product has been picked up");
 }
 
 /**
