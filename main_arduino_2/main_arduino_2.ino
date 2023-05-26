@@ -1,5 +1,7 @@
 #include <Wire.h>
-// params for receiving data from old arduino
+#include <SharpIR.h>
+
+SharpIR distanceSensorZAxis(SharpIR::GP2Y0A41SK0F, A2);
 #define I2C_SLAVE_ADDRESS 11
 #define PAYLOAD_SIZE 2
 
@@ -17,6 +19,7 @@ bool yMotorDirection;
 bool sentStart = false;
 int xMotorPosistion = 0;
 int yMotorPosistion = 0;
+int zMotorPosistion = 0;
 bool requestXMotorPosistion = false;
 int maxXMotorPosistions[] = {0, 4931};
 int maxYMotorPosistions[] = {0, 3000};
@@ -25,6 +28,8 @@ int MillisGoStart;
 int lastYMotorPosistion = 0;
 int lastXMotorPosistion = 0;
 int startStates = 0;
+bool pickingUpProduct = false;
+bool zAxisExtended = false;
 void setup()
 {
     Serial.begin(9600);
@@ -46,8 +51,9 @@ void setup()
 void loop()
 {
     startLoop();
+    getZMotorPosistion();
     fixMotorPositions();
-    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
+    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + " " + String(zMotorPosistion));
 }
 
 /**
@@ -65,21 +71,27 @@ void fixMotorPositions()
         yMotorPosistion = maxYMotorPosistions[1];
 }
 /**
- *  Check the position of the motor and update the zMotorPosistion variable
- *  keep the zMotorPosistion variable between 0 and 920 for accuracy
+ *  Check the position of the motor and update the yMotorPosistion variable
  */
 void setYMotorPosistion()
 {
     yMotorPosistion = yMotorDirection ? yMotorPosistion - 1 : yMotorPosistion + 1;
 }
 /**
- * Check the position of the motor and send it to the main arduino
+ *  Check the position of the motor and update the xMotorPosistion variable
  */
 void setXMotorPosistion()
 {
     xMotorPosistion = xMotorDirection ? xMotorPosistion - 1 : xMotorPosistion + 1;
 }
 
+/**
+ *  this function checks the infrared sensors and returns the distance of the z axis
+ */
+void getZMotorPosistion()
+{
+    zMotorPosistion = distanceSensorZAxis.getDistance();
+}
 /**
  *functie voor het versturen van data
  */
@@ -89,6 +101,13 @@ void requestEvents()
     {
         Wire.write(startStates);
         sentStart = false;
+        return;
+    }
+    if (pickingUpProduct)
+    {
+        Serial.println("sent back");
+        Wire.write(zAxisExtended);
+        pickingUpProduct = false;
         return;
     }
     if (requestXMotorPosistion)
@@ -131,6 +150,48 @@ void receiveEvents(int numBytes)
         goToStart();
     if (receive == 111)
         sentStart = true;
+    if (receive == 112)
+        pickupProduct(1);
+    if (receive == 113)
+        pickupProduct(2);
+    if (receive == 114)
+        pickupProduct(3);
+    if (receive == 115)
+        returnZAxis();
+}
+
+void pickupProduct(int productNumber)
+{
+    pickingUpProduct = true;
+    zAxisExtended = false;
+    int limit = 0;
+    if (productNumber == 1)
+        limit = 20;
+    if (productNumber == 2)
+        limit = 13;
+    if (productNumber == 3)
+        limit = 9;
+    while (zMotorPosistion < limit)
+    {
+        getZMotorPosistion();
+        setMotorDirection(true);
+        setMotorSpeed(100);
+    }
+    setMotorSpeed(0);
+    zAxisExtended = true;
+}
+
+void returnZAxis()
+{
+    pickingUpProduct = true;
+    while (zMotorPosistion != 4)
+    {
+        getZMotorPosistion();
+        setMotorDirection(false);
+        setMotorSpeed(100);
+    }
+    setMotorSpeed(0);
+    zAxisExtended = false;
 }
 
 void resetMotorPositions()
