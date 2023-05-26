@@ -327,11 +327,16 @@ void collectProducts()
     if (amountOfPoints > 25)
         return;
     goToStart();
+    int productCount = 1;
     for (int i = 0; i < amountOfPoints; i++)
     {
         Serial.println("going to: " + pointsArray[i]);
         goToPosition(getPositionFromMessage(Y, pointsArray[i]), getPositionFromMessage(X, pointsArray[i]));
-        delay(1000); // hier de oppak functie
+        pickupProduct(productCount);
+        productCount++;
+        if (productCount == 4)
+            productCount = 1;
+
         if ((i + 1) % 3 == 0)
         {
             goToStart();
