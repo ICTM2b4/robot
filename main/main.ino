@@ -36,6 +36,8 @@ bool allowJoystickControl = true;
 // motor positions
 int xMotorPosistion;
 int yMotorPosistion;
+int ZMotorPosistion;
+// motor directions
 bool yMotorDirection;
 // locations of the warehouse
 int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
@@ -44,7 +46,7 @@ int yLocations[5] = {2317, 1814, 1288, 776, 269};
 int amountOfPoints;
 String pointsArray[25];
 // enable debug mode
-bool debug = false;
+bool debug = true;
 
 void setup()
 {
@@ -80,7 +82,7 @@ void loop()
  */
 void printPosition()
 {
-    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + "");
+    Serial.println("current: " + String(xMotorPosistion) + " " + String(yMotorPosistion) + " " + String(ZMotorPosistion));
 }
 /**
  * this function sends the robots arm to the start position
@@ -231,6 +233,7 @@ void resetMotorPositions()
  */
 void getMotorPositions()
 {
+    // get the x position
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
     Wire.write(108);
     Wire.endTransmission();
@@ -239,9 +242,9 @@ void getMotorPositions()
     int receivedXValue = 0;
     Wire.readBytes((byte *)&receivedXValue, sizeof(receivedXValue));
     Wire.endTransmission();
-
     xMotorPosistion = receivedXValue;
 
+    // get the y position
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
     Wire.write(109);
     Wire.endTransmission();
@@ -249,8 +252,18 @@ void getMotorPositions()
     Wire.requestFrom(I2C_SLAVE1_ADDRESS, sizeof(5000));
     int receivedYValue = 0;
     Wire.readBytes((byte *)&receivedYValue, sizeof(receivedYValue));
-    yMotorPosistion = receivedYValue;
     Wire.endTransmission();
+    yMotorPosistion = receivedYValue;
+    // get the z position
+    Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
+    Wire.write(116);
+    Wire.endTransmission();
+
+    Wire.requestFrom(I2C_SLAVE1_ADDRESS, sizeof(5000));
+    int receivedZValue = 0;
+    Wire.readBytes((byte *)&receivedZValue, sizeof(receivedZValue));
+    Wire.endTransmission();
+    ZMotorPosistion = receivedZValue;
 }
 
 /**
@@ -421,7 +434,13 @@ void checkJoystick()
     joystickYValue = analogRead(JOYSTICK_Y_PIN);
     joystickButtonValue = joystickButton.getState();
     if (joystickButton.isPressed())
-        joystickZAxis = !joystickZAxis;
+        if (ZMotorPosistion == 5)
+            joystickZAxis = !joystickZAxis;
+        else
+        {
+            getMotorPositions();
+            goToCords(xMotorPosistion, yMotorPosistion + 100);
+        }
     if (joystickZAxis)
     {
         // set other axis stil to prevent drifting
