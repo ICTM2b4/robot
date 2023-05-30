@@ -436,6 +436,11 @@ void checkJoystick()
     if (joystickButton.isPressed())
         if (ZMotorPosistion == 5)
             joystickZAxis = !joystickZAxis;
+        else
+        {
+            getMotorPositions();
+            goToCords(xMotorPosistion, yMotorPosistion + 100);
+        }
     if (joystickZAxis)
     {
         // set other axis stil to prevent drifting
