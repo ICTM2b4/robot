@@ -21,6 +21,8 @@ int xMotorPosistion = 0;
 int yMotorPosistion = 0;
 int zMotorPosistion = 0;
 bool requestXMotorPosistion = false;
+bool requestYMotorPosistion = false;
+bool requestZMotorPosistion = false;
 int maxXMotorPosistions[] = {0, 4931};
 int maxYMotorPosistions[] = {0, 3000};
 bool isStart = true;
@@ -116,10 +118,17 @@ void requestEvents()
     if (requestXMotorPosistion)
     {
         Wire.write((byte *)&xMotorPosistion, sizeof(xMotorPosistion));
+        requestXMotorPosistion = false;
     }
-    if (!requestXMotorPosistion)
+    if (requestYMotorPosistion)
     {
         Wire.write((byte *)&yMotorPosistion, sizeof(yMotorPosistion));
+        requestYMotorPosistion = false;
+    }
+    if (requestZMotorPosistion)
+    {
+        Wire.write((byte *)&zMotorPosistion, sizeof(zMotorPosistion));
+        requestZMotorPosistion = false;
     }
 }
 
@@ -148,7 +157,7 @@ void receiveEvents(int numBytes)
     if (receive == 108)
         requestXMotorPosistion = true;
     if (receive == 109)
-        requestXMotorPosistion = false;
+        requestYMotorPosistion = true;
     if (receive == 110)
         goToStart();
     if (receive == 111)
@@ -161,6 +170,8 @@ void receiveEvents(int numBytes)
         pickupProduct(3);
     if (receive == 115)
         returnZAxis();
+    if (receive == 116)
+        requestZMotorPosistion = true;
 }
 
 void pickupProduct(int productNumber)
@@ -193,7 +204,7 @@ void returnZAxis()
         setMotorDirection(false);
         setMotorSpeed(100);
     }
-    //delay to compensate for the arm not reaching the end
+    // delay to compensate for the arm not reaching the end
     delay(500);
     setMotorSpeed(0);
     zAxisExtended = false;
