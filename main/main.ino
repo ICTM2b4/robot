@@ -40,6 +40,9 @@ bool yMotorDirection;
 // locations of the warehouse
 int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
 int yLocations[5] = {2317, 1814, 1288, 776, 269};
+// data for collecting products
+int amountOfPoints;
+String pointsArray[25];
 // enable debug mode
 bool debug = false;
 
@@ -58,7 +61,6 @@ void setup()
     pinMode(Y_MOTOR_SPEED, OUTPUT);
     // setup the joystick
     joystickButton.setDebounceTime(50);
-    // goToStart();
 }
 
 void loop()
@@ -287,8 +289,63 @@ void checkMessages()
     if (message.startsWith("goToCords(") && message.endsWith(")"))
         goToCords(getCordFromMessage(X, message), getCordFromMessage(Y, message));
     if (message.startsWith("goToPosition(") && message.endsWith(")"))
+    {
+        message.remove(0, 13);
+        message.remove(message.length() - 1);
         goToPosition(getPositionFromMessage(X, message), getPositionFromMessage(Y, message));
+    }
+    if (message.startsWith("collectProducts(") && message.endsWith(")"))
+    {
+        message = message.substring(16, message.length() - 1);
+        convertMessageToPositionsArray(message);
+        collectProducts();
+    }
 }
+
+/**
+ * this function converts a message to an array of multiple x an y positions
+ * @param message the message
+ * @return the array of positions
+ */
+void convertMessageToPositionsArray(String message)
+{
+    amountOfPoints = message.length() / 4 + 1;
+    memset(pointsArray, 0, sizeof(pointsArray));
+    if (amountOfPoints > 25)
+        return;
+
+    for (int i = 0; i < amountOfPoints; i++)
+    {
+        int pointIndex = message.indexOf('.');
+        pointsArray[i] = message.substring(0, pointIndex);
+        message = message.substring(pointIndex + 1, message.length());
+    }
+}
+
+void collectProducts()
+{
+    if (amountOfPoints > 25)
+        return;
+    goToStart();
+    int productCount = 1;
+    for (int i = 0; i < amountOfPoints; i++)
+    {
+        Serial.println("going to: " + pointsArray[i]);
+        goToPosition(getPositionFromMessage(Y, pointsArray[i]), getPositionFromMessage(X, pointsArray[i]));
+        pickupProduct(productCount);
+        productCount++;
+        if (productCount == 4)
+            productCount = 1;
+
+        if ((i + 1) % 3 == 0)
+        {
+            goToStart();
+            delay(1000);
+        }
+    }
+    goToStart();
+}
+
 /**
  * this function sends the robot to a position in the warehouse
  * @param row the row of the warehouse
@@ -307,8 +364,6 @@ void goToPosition(int row, int column)
  */
 int getPositionFromMessage(axis target, String message)
 {
-    message.remove(0, 13);
-    message.remove(message.length() - 1);
 
     int commaIndex = message.indexOf(',');
 

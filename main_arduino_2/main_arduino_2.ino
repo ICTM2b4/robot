@@ -61,6 +61,9 @@ void loop()
  */
 void fixMotorPositions()
 {
+    if (isStart)
+        return;
+
     if (xMotorPosistion < maxXMotorPosistions[0])
         xMotorPosistion = 0;
     if (xMotorPosistion > maxXMotorPosistions[1])
@@ -184,12 +187,14 @@ void pickupProduct(int productNumber)
 void returnZAxis()
 {
     pickingUpProduct = true;
-    while (zMotorPosistion != 4)
+    while (zMotorPosistion != 5)
     {
         getZMotorPosistion();
         setMotorDirection(false);
         setMotorSpeed(100);
     }
+    //delay to compensate for the arm not reaching the end
+    delay(500);
     setMotorSpeed(0);
     zAxisExtended = false;
 }
@@ -231,6 +236,8 @@ go to start position
 void goToStart()
 {
     isStart = true;
+    lastYMotorPosistion = 999999;
+    lastXMotorPosistion = 999999;
     MillisGoStart = millis();
 
     startStates = 0;
