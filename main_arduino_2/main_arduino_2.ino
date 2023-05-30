@@ -187,12 +187,14 @@ void pickupProduct(int productNumber)
 void returnZAxis()
 {
     pickingUpProduct = true;
-    while (zMotorPosistion != 4)
+    while (zMotorPosistion != 5)
     {
         getZMotorPosistion();
         setMotorDirection(false);
         setMotorSpeed(100);
     }
+    //delay to compensate for the arm not reaching the end
+    delay(500);
     setMotorSpeed(0);
     zAxisExtended = false;
 }
