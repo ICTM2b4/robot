@@ -205,7 +205,7 @@ void returnZAxis()
         setMotorSpeed(100);
     }
     // delay to compensate for the arm not reaching the end
-    delay(500);
+    delay(1000);
     setMotorSpeed(0);
     zAxisExtended = false;
 }
