@@ -42,11 +42,15 @@ bool yMotorDirection;
 // locations of the warehouse
 int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
 int yLocations[5] = {2317, 1814, 1288, 776, 269};
+// store the closest grid number
+int closestX = 0;
+int closestY = 0;
+bool isCloseToStart = false;
 // data for collecting products
 int amountOfPoints;
 String pointsArray[25];
 // enable debug mode
-bool debug = true;
+bool debug = false;
 
 void setup()
 {
@@ -75,6 +79,63 @@ void loop()
     if (allowJoystickControl)
         checkJoystick();
     getMotorPositions();
+    setClosestGridNumber();
+    printGridPosition();
+}
+
+/**
+ * this function sends the current position of the robot to the HMI
+ */
+void printGridPosition()
+{
+    if (isCloseToStart)
+    {
+        Serial.println("5,4");
+        return;
+    }
+    Serial.println(String(closestX) + "," + String(closestY));
+}
+
+/**
+ * this functions takes a look at the robot's current position and checks if it is close to a grid number
+ * if it is close to start it will set the isCloseToStart variable to true
+ */
+void setClosestGridNumber()
+{
+    if (xMotorPosistion < 1200)
+    {
+        isCloseToStart = true;
+        return;
+    }
+    isCloseToStart = false;
+    int closestX = findClosestIndex(xMotorPosistion, xLocations, 5);
+    int closestY = findClosestIndex(yMotorPosistion, yLocations, 5);
+}
+
+/**
+ * this function checks if the robot is close to a grid number based the given params
+ * @param target the target value
+ * @param arr the array with the grid numbers
+ * @param size the size of the array
+ */
+int findClosestIndex(int target, int arr[], int size)
+{
+    int closestValue = arr[0]; // Initialize with the first value in the array
+    int index = 0;
+    for (int i = 1; i < size; i++)
+    {
+        // Calculate the absolute difference between the target value and the current array element
+        int diff = abs(target - arr[i]);
+
+        // Check if the current element is closer to the target than the previous closest value
+        if (diff < abs(target - closestValue))
+        {
+            closestValue = arr[i];
+            index = i;
+        }
+    }
+
+    return index;
 }
 
 /**
@@ -313,6 +374,8 @@ void checkMessages()
         convertMessageToPositionsArray(message);
         collectProducts();
     }
+    if (message == "getGridPosition")
+        printGridPosition();
 }
 
 /**
