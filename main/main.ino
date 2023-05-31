@@ -32,7 +32,7 @@ int joystickButtonValue = 0;
 // toggle between the XY and Z axis
 bool joystickZAxis = false;
 // toggle between joystick and serial control
-bool allowJoystickControl = true;
+bool pickingOrder = false;
 // motor positions
 int xMotorPosistion;
 int yMotorPosistion;
@@ -42,11 +42,13 @@ bool yMotorDirection;
 // locations of the warehouse
 int xLocations[5] = {4619, 3925, 3229, 2531, 1816};
 int yLocations[5] = {2266, 1783, 1270, 770, 254};
+// store the closest grid number
+int closestX = 0;
+int closestY = 0;
+bool isCloseToStart = false;
 // data for collecting products
 int amountOfPoints;
 String pointsArray[25];
-// enable debug mode
-bool debug = true;
 
 void setup()
 {
@@ -69,12 +71,67 @@ void loop()
 {
     if (emergencyButtonloop())
         return;
-    if (debug)
-        printPosition();
-    checkMessages();
-    if (allowJoystickControl)
+    if (checkMessagesFromSerial())
+        processMessages();
+    if (!pickingOrder)
         checkJoystick();
     getMotorPositions();
+    setClosestGridNumber();
+}
+
+/**
+ * this function sends the current position of the robot to the HMI
+ */
+void printGridPosition()
+{
+    if (isCloseToStart)
+    {
+        Serial.println("5,4");
+        return;
+    }
+    Serial.println(String(closestX) + "," + String(closestY));
+}
+
+/**
+ * this functions takes a look at the robot's current position and checks if it is close to a grid number
+ * if it is close to start it will set the isCloseToStart variable to true
+ */
+void setClosestGridNumber()
+{
+    if (xMotorPosistion < 1200)
+    {
+        isCloseToStart = true;
+        return;
+    }
+    isCloseToStart = false;
+    closestX = findClosestIndex(xMotorPosistion, xLocations, 5);
+    closestY = findClosestIndex(yMotorPosistion, yLocations, 5);
+}
+
+/**
+ * this function checks if the robot is close to a grid number based the given params
+ * @param target the target value
+ * @param arr the array with the grid numbers
+ * @param size the size of the array
+ */
+int findClosestIndex(int target, int arr[], int size)
+{
+    int closestValue = arr[0]; // Initialize with the first value in the array
+    int index = 0;
+    for (int i = 1; i < size; i++)
+    {
+        // Calculate the absolute difference between the target value and the current array element
+        int diff = abs(target - arr[i]);
+
+        // Check if the current element is closer to the target than the previous closest value
+        if (diff < abs(target - closestValue))
+        {
+            closestValue = arr[i];
+            index = i;
+        }
+    }
+
+    return index;
 }
 
 /**
@@ -167,6 +224,9 @@ void goToCords(int x, int y)
             setMotorSpeed(Y, 0);
         }
         getMotorPositions();
+        setClosestGridNumber();
+        if (checkMessagesFromSerial())
+            processMessages();
     }
     setMotorSpeed(X, 0);
     setMotorSpeed(Y, 0);
@@ -201,20 +261,20 @@ void pickupProduct(int productNumber)
 
     getMotorPositions();
     goToCords(xMotorPosistion, yMotorPosistion + 150);
-    Serial.println("Y reached");
+    // Serial.println("Y reached");
     Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
     Wire.write(115);
     Wire.endTransmission();
 
     while (true)
     {
-        Serial.println("wait till arm reached first position");
+        // Serial.println("wait till arm reached first position");
         Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
         int receivedValue = Wire.read();
         if (receivedValue == 0)
             break;
     }
-    Serial.println("product has been picked up");
+    // Serial.println("product has been picked up");
 }
 
 /**
@@ -267,23 +327,21 @@ void getMotorPositions()
 }
 
 /**
- * this function sends data to the HMI application
+ * check if there is a message in the serial buffer
+ * @return true if there is a message, false if there is no message
  */
-void sentMessage(String message)
+bool checkMessagesFromSerial()
 {
-    Serial.print(message);
-}
-
-/**
- *  check if there is a message in the serial buffer
- *  if there is a message, read it and execute the related command
- */
-void checkMessages()
-{
-    // check if there is a message, if not, return
     if (Serial.available() <= 0)
-        return;
-    // read the message
+        return false;
+    return true;
+}
+/**
+ * read the message from the serial buffer
+ * @return the message
+ */
+String getMessageFromSerial()
+{
     String message = "";
     while (Serial.available())
     {
@@ -291,12 +349,33 @@ void checkMessages()
         message += c;
         delay(2);
     }
-    // toggle between joystick and serial control
-    if (message == "enableControlFromHMI")
-        allowJoystickControl = false;
-    if (message == "disableControlFromHMI")
-        allowJoystickControl = true;
-    // go to start position
+    return message;
+}
+
+/**
+ *  check if there is a message in the serial buffer
+ *  if there is a message, read it and execute the related command
+ */
+void processMessages()
+{
+    // read the message
+    String message = getMessageFromSerial();
+
+    if (message == "getGridPosition")
+        printGridPosition();
+
+    // if the robot is picking a order don't process any other messages
+    if (pickingOrder)
+        return;
+    // commands for automatic control from the HMI
+    if (message.startsWith("collectProducts(") && message.endsWith(")"))
+    {
+        message = message.substring(16, message.length() - 1);
+        convertMessageToPositionsArray(message);
+        collectProducts();
+    }
+
+    // commands for manual control
     if (message == "goToStart")
         goToStart();
     if (message.startsWith("goToCords(") && message.endsWith(")"))
@@ -306,12 +385,6 @@ void checkMessages()
         message.remove(0, 13);
         message.remove(message.length() - 1);
         goToPosition(getPositionFromMessage(X, message), getPositionFromMessage(Y, message));
-    }
-    if (message.startsWith("collectProducts(") && message.endsWith(")"))
-    {
-        message = message.substring(16, message.length() - 1);
-        convertMessageToPositionsArray(message);
-        collectProducts();
     }
 }
 
@@ -337,13 +410,14 @@ void convertMessageToPositionsArray(String message)
 
 void collectProducts()
 {
+    pickingOrder = true;
     if (amountOfPoints > 25)
         return;
     goToStart();
     int productCount = 1;
     for (int i = 0; i < amountOfPoints; i++)
     {
-        Serial.println("going to: " + pointsArray[i]);
+        // Serial.println("going to: " + pointsArray[i]);
         goToPosition(getPositionFromMessage(Y, pointsArray[i]), getPositionFromMessage(X, pointsArray[i]));
         pickupProduct(productCount);
         productCount++;
@@ -357,6 +431,7 @@ void collectProducts()
         }
     }
     goToStart();
+    pickingOrder = false;
 }
 
 /**
