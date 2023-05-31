@@ -209,7 +209,7 @@ void goToCords(int x, int y)
             setMotorSpeed(X, 0);
         }
 
-        if (yMotorPosistion < y)
+        if (yMotorPosistion < y && yMotorPosistion < 2800)
         {
             setMotorDirection(Y, false);
             setMotorSpeed(Y, 255);
@@ -223,6 +223,8 @@ void goToCords(int x, int y)
         {
             setMotorSpeed(Y, 0);
         }
+        if (yMotorPosistion >= 2800)
+            break;
         getMotorPositions();
         setClosestGridNumber();
         if (checkMessagesFromSerial())
