@@ -40,8 +40,8 @@ int ZMotorPosistion;
 // motor directions
 bool yMotorDirection;
 // locations of the warehouse
-int xLocations[5] = {4631, 3912, 3220, 2521, 1801};
-int yLocations[5] = {2317, 1814, 1288, 776, 269};
+int xLocations[5] = {4619, 3925, 3229, 2531, 1816};
+int yLocations[5] = {2266, 1783, 1270, 770, 254};
 // data for collecting products
 int amountOfPoints;
 String pointsArray[25];
