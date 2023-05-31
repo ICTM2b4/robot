@@ -86,10 +86,10 @@ void printGridPosition()
 {
     if (isCloseToStart)
     {
-        Serial.println("5,4");
+        Serial.println("5,4,");
         return;
     }
-    Serial.println(String(closestX) + "," + String(closestY));
+    Serial.println(String(closestX) + "," + String(closestY) + ",");
 }
 
 /**
