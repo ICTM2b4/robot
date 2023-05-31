@@ -49,8 +49,6 @@ bool isCloseToStart = false;
 // data for collecting products
 int amountOfPoints;
 String pointsArray[25];
-// enable debug mode
-bool debug = false;
 
 void setup()
 {
@@ -73,14 +71,11 @@ void loop()
 {
     if (emergencyButtonloop())
         return;
-    if (debug)
-        printPosition();
     checkMessages();
     if (allowJoystickControl)
         checkJoystick();
     getMotorPositions();
     setClosestGridNumber();
-    printGridPosition();
 }
 
 /**
@@ -108,8 +103,8 @@ void setClosestGridNumber()
         return;
     }
     isCloseToStart = false;
-    int closestX = findClosestIndex(xMotorPosistion, xLocations, 5);
-    int closestY = findClosestIndex(yMotorPosistion, yLocations, 5);
+    closestX = findClosestIndex(xMotorPosistion, xLocations, 5);
+    closestY = findClosestIndex(yMotorPosistion, yLocations, 5);
 }
 
 /**
