@@ -157,6 +157,8 @@ void goToStart()
     setMotorSpeed(Y, 255);
     while (isStart == true)
     {
+        if (emergencyButtonloop())
+            continue;
         if (millis() - MillisGoStart > 1000)
         {
             Wire.beginTransmission(I2C_SLAVE1_ADDRESS);
@@ -194,6 +196,8 @@ void goToCords(int x, int y)
 {
     while ((xMotorPosistion != x || yMotorPosistion != y) && !emergencyButtonstate)
     {
+        if (emergencyButtonloop())
+            continue;
         if (xMotorPosistion < x)
         {
             setMotorDirection(X, false);
@@ -255,6 +259,8 @@ void pickupProduct(int productNumber)
 
     while (true)
     {
+        if (emergencyButtonloop())
+            continue;
         Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
         int receivedValue = Wire.read();
         if (receivedValue == 1)
@@ -270,6 +276,8 @@ void pickupProduct(int productNumber)
 
     while (true)
     {
+        if (emergencyButtonloop())
+            continue;
         // Serial.println("wait till arm reached first position");
         Wire.requestFrom(I2C_SLAVE1_ADDRESS, 2);
         int receivedValue = Wire.read();
@@ -716,9 +724,9 @@ bool emergencyButtonloop()
             Serial.println("emergencyButton gereset");
             emergencyButtonstate = false;
         }
-        analogWrite(X_MOTOR_SPEED, 0);
-        analogWrite(Y_MOTOR_SPEED, 0);
-        sentSpeedData(0);
+        setMotorSpeed(X, 0);
+        setMotorSpeed(Y, 0);
+        setMotorSpeed(Z, 0);
         return true;
     }
     else
@@ -731,6 +739,7 @@ void emergencyButton()
 {
     emergencyButtonstate = true;
     Serial.println("emergencyButton knop ingedrukt");
-    analogWrite(X_MOTOR_SPEED, 0);
-    analogWrite(Y_MOTOR_SPEED, 0);
+    setMotorSpeed(X, 0);
+    setMotorSpeed(Y, 0);
+    setMotorSpeed(Z, 0);
 }
