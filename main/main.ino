@@ -41,7 +41,7 @@ int ZMotorPosistion;
 bool yMotorDirection;
 // locations of the warehouse
 int xLocations[5] = {4619, 3925, 3229, 2531, 1816};
-int yLocations[5] = {2266, 1783, 1270, 770, 254};
+int yLocations[5] = {2280, 1783, 1280, 770, 254};
 // store the closest grid number
 int closestX = 0;
 int closestY = 0;
